@@ -21,6 +21,10 @@ class FinancialAPIsWrapper:
     def __authorized_fmp_request(self, endpoint : str, params : CaseInsensitiveDict) -> (list | dict):
         params['apikey'] = FMP_API_KEY
         return requests.get(url=f'{FMP_API_URL}{endpoint}', params=params).json()
+    
+    def __edgar_request(self, endpoint : str, resource : str) -> (list | dict):
+        headers = CaseInsensitiveDict({'user-agent' : 'Name (email)'})
+        return requests.get(url=f'{EDGAR_API_URL}{endpoint}/{resource}', headers=headers).json()
 
     def __get_cik(self, symbol : str) -> str:
         lookups = secedgar.cik_lookup.CIKLookup([symbol], user_agent='Name (email)')
@@ -39,7 +43,7 @@ class FinancialAPIsWrapper:
         if symbol:
             cik = self.__get_cik(symbol=symbol)
         if cik and len(cik) == 10:
-            return requests.get(url=f'{EDGAR_API_URL}xbrl/companyfacts/CIK{cik}.json', headers=CaseInsensitiveDict({'user-agent' : 'Name (email)'})).json()
+            return self.__edgar_request(endpoint='xbrl/companyfacts', resource=f'CIK{cik}.json')
         return None
     
 finacial_apis_wrapper = FinancialAPIsWrapper()
