@@ -39,7 +39,6 @@ class FinancialAPIsWrapper:
         if symbol:
             cik = self.__get_cik(symbol=symbol)
         if cik and len(cik) == 10:
-            print(cik)
             return requests.get(url=f'{EDGAR_API_URL}xbrl/companyfacts/CIK{cik}.json', headers=CaseInsensitiveDict({'user-agent' : 'Name (email)'})).json()
         return None
     
