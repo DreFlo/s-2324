@@ -35,7 +35,7 @@ class FinancialAPIsWrapper:
         return None
     
     # Symbol supersedes other arguments
-    def get_company_facts(self, symbol : str = None, cik : str = None) -> bytes:
+    def get_company_facts(self, symbol : str = None, cik : str = None) -> dict:
         if symbol:
             cik = self.__get_cik(symbol=symbol)
         if cik and len(cik) == 10:
