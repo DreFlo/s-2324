@@ -1,3 +1,4 @@
 **.env
 **.scratch.json
 .vscode/
+**/__pycache__
