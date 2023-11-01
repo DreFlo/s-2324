@@ -2,3 +2,5 @@
 **.scratch.json
 .vscode/
 **/__pycache__
+token.json
+/backend/external_apis/credentials.json
