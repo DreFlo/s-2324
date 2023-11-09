@@ -1,24 +1,37 @@
+import json
 from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
 from model.company_facts import CompanyFacts
 from utils.key_metric_functions import key_metric_function_map
 
-def test_metric(metric : str):
-    api_company_facts = FinancialAPIsWrapper.get_company_facts('AAPL')
-    company_facts = CompanyFacts.from_sec_facts(api_company_facts)
+def get_aapl_data():
+    facts = FinancialAPIsWrapper.get_company_facts(symbol='AAPL')
+
+    company_facts = CompanyFacts.from_sec_facts(sec_facts=facts)
+
+    with open('resources/aapl_data.json', 'w') as f:
+        f.write(json.dumps(company_facts.to_dict(), indent=2))
+
+def get_test_data():
+    symbols = []
+
+    with open('resources/symbols', 'r') as f:
+        symbols_file = f.read().split('\n')
+
+        for i in range(1, len(symbols_file) - 2):
+            symbols.append(symbols_file[i].split('|')[0])
     
-    res = company_facts.get_key_metric(metric)
-
-    print(metric)
+    all_company_facts = {}
+    
+    for symbol in symbols:
+        facts = FinancialAPIsWrapper.get_company_facts(symbol=symbol)
         
-def get_metric_names():
-    api_company_facts = FinancialAPIsWrapper.get_company_facts('AAPL')
-        
-    print(list(api_company_facts['facts']['us-gaap'].keys()))
+        company_facts = CompanyFacts.from_sec_facts(sec_facts=facts)
 
-    with open('metric_names.txt', 'w') as f:
-        f.write(str(list(api_company_facts['facts']['us-gaap'].keys())))
+        all_company_facts[symbol] = company_facts.to_dict()
+
+    with open('resources/test_data.json', 'w') as f:
+        f.write(json.dumps(all_company_facts, indent=2))
 
 if __name__ == '__main__':
-    for key_metric in key_metric_function_map:
-        test_metric(key_metric)
-        print()
+    get_aapl_data()
+    #get_test_data()

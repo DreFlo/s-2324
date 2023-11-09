@@ -13,7 +13,7 @@ class CompanyFacts:
         pass
 
     def __get_form_from_sec_facts(sec_facts : dict, form : Form = Form._10Q) -> dict:
-        form_data = {'ends' : set()}
+        form_data = {'fileds' : set()}
         for taxonomy in sec_facts:
             for tag in sec_facts[taxonomy]:
                 if 'units' not in sec_facts[taxonomy][tag]:
@@ -21,7 +21,7 @@ class CompanyFacts:
 
                 for unit in sec_facts[taxonomy][tag]['units']:
                     for datapoint in sec_facts[taxonomy][tag]['units'][unit]:
-                        if 'form' not in datapoint or datapoint['form'] != form.value or 'end' not in datapoint:
+                        if 'form' not in datapoint or datapoint['form'] != form.value or 'filed' not in datapoint:
                             continue
 
                         if tag not in form_data:
@@ -33,10 +33,10 @@ class CompanyFacts:
                         if unit not in form_data[tag]['units']:
                             form_data[tag]['units'][unit] = {}
 
-                        form_data[tag]['units'][unit][datapoint['end']] = {key : value for key, value in datapoint.items() if key != 'end'}
-                        form_data['ends'].add(datapoint['end'])
+                        form_data[tag]['units'][unit][datapoint['filed']] = {key : value for key, value in datapoint.items() if key != 'filed'}
+                        form_data['fileds'].add(datapoint['filed'])
 
-        form_data['ends'] = sorted(list(form_data['ends']))
+        form_data['fileds'] = sorted(list(form_data['fileds']))
 
         return form_data
 
@@ -85,4 +85,29 @@ class CompanyFacts:
         form_data = self.__get_form(form=form)
         if not form_data:
             return None
-        return {end : key_metric_function_map[key_metric](company_facts=self, end=end, form=form) for end in form_data['ends']}
+        return {filed : key_metric_function_map[key_metric](company_facts=self, filed=filed, form=form) for filed in form_data['fileds']}
+    
+    def get_all_key_metrics(self, form : Form = Form._10Q) -> dict | None:
+        from utils.key_metric_functions import key_metric_function_map
+        form_data = self.__get_form(form=form)
+        if not form_data:
+            return None
+        return {key_metric : self.get_key_metric(key_metric=key_metric, form=form) for key_metric in key_metric_function_map}
+    
+    def to_dict(self) -> dict:
+        self_dict = {
+            'name' : self.name,
+            'has_facts' : self.has_facts,
+            'facts_by_form' : {},
+            'key_metrics_by_form' : {}
+        }
+
+        for form in self.__facts_by_form:
+            self_dict['facts_by_form'][form.value] = self.__facts_by_form[form]
+
+        for form in self.__facts_by_form:
+            self_dict['key_metrics_by_form'][form.value] = self.get_all_key_metrics(form=form)
+
+        return self_dict
+
+        
