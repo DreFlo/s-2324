@@ -9,7 +9,9 @@ class CompanyFacts:
     def __init__(self) -> None:
         self.has_facts = False
         self.name = None
+        self.symbol = None
         self.__facts_by_form = None
+        self.__stock_price_history = None
         pass
 
     def __get_form_from_sec_facts(sec_facts : dict, form : Form = Form._10Q) -> dict:
@@ -40,10 +42,12 @@ class CompanyFacts:
 
         return form_data
 
-    def from_sec_facts(sec_facts : dict) -> CompanyFacts:
+    def from_finacial_information(symbol : str, sec_facts : dict, stock_price_history) -> CompanyFacts:
         company_facts = CompanyFacts()
 
         company_facts.name = sec_facts['entityName']
+
+        company_facts.symbol = symbol
 
         company_facts.__facts_by_form = {}
 
@@ -51,6 +55,8 @@ class CompanyFacts:
             company_facts.__facts_by_form[form] = CompanyFacts.__get_form_from_sec_facts(sec_facts=sec_facts['facts'], form=form)
 
         company_facts.has_facts = True
+
+        company_facts.__stock_price_history = stock_price_history
 
         return company_facts
 
@@ -110,4 +116,9 @@ class CompanyFacts:
 
         return self_dict
 
-        
+    def get_adjuted_stock_price_history(self, date : str, moment : str = None) -> dict | float | None:
+        if not moment:
+            return self.__stock_price_history[date]
+        elif moment in self.__stock_price_history[date]:
+            return self.__stock_price_history[date][moment]
+        return None

@@ -6,7 +6,7 @@ from utils.key_metric_functions import key_metric_function_map
 def get_aapl_data():
     facts = FinancialAPIsWrapper.get_company_facts(symbol='AAPL')
 
-    company_facts = CompanyFacts.from_sec_facts(sec_facts=facts)
+    company_facts = CompanyFacts.from_finacial_information(sec_facts=facts)
 
     with open('resources/aapl_data.json', 'w') as f:
         f.write(json.dumps(company_facts.to_dict(), indent=2))
@@ -25,7 +25,7 @@ def get_test_data():
     for symbol in symbols:
         facts = FinancialAPIsWrapper.get_company_facts(symbol=symbol)
         
-        company_facts = CompanyFacts.from_sec_facts(sec_facts=facts)
+        company_facts = CompanyFacts.from_finacial_information(sec_facts=facts)
 
         all_company_facts[symbol] = company_facts.to_dict()
 

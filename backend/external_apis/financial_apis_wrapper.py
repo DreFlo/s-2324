@@ -1,3 +1,4 @@
+import csv
 import secedgar
 import os
 import json
@@ -45,3 +46,29 @@ class FinancialAPIsWrapper:
         if cik and len(cik) == 10:
             return FinancialAPIsWrapper.__edgar_request(endpoint='xbrl/companyfacts', resource=f'CIK{cik}.json')
         return None
+    
+    def get_company_stock_price(self, symbol : str) -> dict:
+        data = requests.get(url=f'http://macrotrends.net/assets/php/stock_data_download.php?t={symbol}', headers={'user-agent' : 'Name (email)'})
+
+        csvreader = csv.reader(data.text.split('\n')[15:], delimiter=',')
+
+        # data is dict with date as key and dict with open, high, low, close, volume, as keys
+        data = {}
+
+        for row in csvreader:
+            if len(row) < 2:
+                continue
+            data['-'.join(row[0].split('/')[::-1])] = {
+                'open' : row[1],
+                'high' : row[2],
+                'low' : row[3],
+                'close' : row[4],
+                'volume' : row[5]
+            }
+
+        return data
+
+
+
+fapi = FinancialAPIsWrapper()
+fapi.get_company_stock_price(symbol='AAPL')
