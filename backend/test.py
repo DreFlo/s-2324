@@ -1,12 +1,11 @@
 import json
+import time
 from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
 from model.company_facts import CompanyFacts
-from utils.key_metric_functions import key_metric_function_map
+from random import shuffle
 
 def get_aapl_data():
-    facts = FinancialAPIsWrapper.get_company_facts(symbol='AAPL')
-
-    company_facts = CompanyFacts.from_finacial_information(sec_facts=facts)
+    company_facts = CompanyFacts.from_symbol(symbol='AAPL', financial_api_wrapper=FinancialAPIsWrapper)
 
     with open('resources/aapl_data.json', 'w') as f:
         f.write(json.dumps(company_facts.to_dict(), indent=2))
@@ -21,11 +20,18 @@ def get_test_data():
             symbols.append(symbols_file[i].split('|')[0])
     
     all_company_facts = {}
+
+    # randomize order of symbols
+    shuffle(symbols)
     
-    for symbol in symbols:
-        facts = FinancialAPIsWrapper.get_company_facts(symbol=symbol)
-        
-        company_facts = CompanyFacts.from_finacial_information(sec_facts=facts)
+    for symbol in symbols[:2000]:
+        print(f'Getting data for {symbol}')
+
+        try:
+            company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
+        except Exception as e:
+            print(f'Failed to get data for {symbol} - {e.__class__.__name__} - {e}')
+            continue
 
         all_company_facts[symbol] = company_facts.to_dict()
 
@@ -33,5 +39,5 @@ def get_test_data():
         f.write(json.dumps(all_company_facts, indent=2))
 
 if __name__ == '__main__':
-    get_aapl_data()
-    #get_test_data()
+    #get_aapl_data()
+    get_test_data()

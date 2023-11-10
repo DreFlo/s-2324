@@ -15,7 +15,10 @@ FMP_API_KEY = os.getenv('FMP_API_KEY')
 
 EDGAR_API_URL = 'https://data.sec.gov/api/'
 
+ticker_to_cik = None
+
 class FinancialAPIsWrapper:
+    
     def __init__(self) -> None:
         pass
 
@@ -25,11 +28,19 @@ class FinancialAPIsWrapper:
     
     def __edgar_request(endpoint : str, resource : str) -> (list | dict):
         headers = CaseInsensitiveDict({'user-agent' : 'Name (email)'})
-        return requests.get(url=f'{EDGAR_API_URL}{endpoint}/{resource}', headers=headers).json()
+        return requests.get(url=f'{EDGAR_API_URL}{endpoint}/{resource}', headers=headers, timeout=15).json()
 
     def __get_cik(symbol : str) -> str:
-        lookups = secedgar.cik_lookup.CIKLookup([symbol], user_agent='Name (email)')
-        return f'{int([lookup for lookup in lookups.lookup_dict.values()][0]):010}'
+        global ticker_to_cik
+        if not ticker_to_cik:
+            response = requests.get("https://www.sec.gov/files/company_tickers.json")
+            json_response = response.json()
+            ticker_to_cik = {v['ticker'].upper(): v["cik_str"] for v in json_response.values() if v['ticker'] is not None}
+
+        if symbol.upper() not in ticker_to_cik:
+            raise Exception(f'Failed to find CIK for {symbol}')
+        
+        return f'{ticker_to_cik[symbol]:010}'
     
     # Query supersedes other arguments
     def search_company(query : dict = None, search_str : str = None, limit : int = None, exchange : str = 'NASDAQ') -> (list | None):
@@ -47,8 +58,11 @@ class FinancialAPIsWrapper:
             return FinancialAPIsWrapper.__edgar_request(endpoint='xbrl/companyfacts', resource=f'CIK{cik}.json')
         return None
     
-    def get_company_stock_price(self, symbol : str) -> dict:
+    def get_company_stock_price_history(symbol : str) -> dict:
         data = requests.get(url=f'http://macrotrends.net/assets/php/stock_data_download.php?t={symbol}', headers={'user-agent' : 'Name (email)'})
+
+        if data.status_code != 200:
+            raise Exception(f'Failed to get stock price history for {symbol}')
 
         csvreader = csv.reader(data.text.split('\n')[15:], delimiter=',')
 
@@ -59,16 +73,11 @@ class FinancialAPIsWrapper:
             if len(row) < 2:
                 continue
             data['-'.join(row[0].split('/')[::-1])] = {
-                'open' : row[1],
-                'high' : row[2],
-                'low' : row[3],
-                'close' : row[4],
-                'volume' : row[5]
+                'open' : float(row[1]),
+                'high' : float(row[2]),
+                'low' : float(row[3]),
+                'close' : float(row[4]),
+                'volume' : int(row[5])
             }
 
         return data
-
-
-
-fapi = FinancialAPIsWrapper()
-fapi.get_company_stock_price(symbol='AAPL')

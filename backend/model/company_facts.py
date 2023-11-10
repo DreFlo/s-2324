@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
 
 class Form(Enum):
     _10Q = '10-Q'
@@ -12,6 +13,7 @@ class CompanyFacts:
         self.symbol = None
         self.__facts_by_form = None
         self.__stock_price_history = None
+        self.__adjusted_outstanding_shares = None
         pass
 
     def __get_form_from_sec_facts(sec_facts : dict, form : Form = Form._10Q) -> dict:
@@ -41,8 +43,22 @@ class CompanyFacts:
         form_data['fileds'] = sorted(list(form_data['fileds']))
 
         return form_data
+    
+    def __get_stock_splits(self) -> dict:
+        stock_splits = self.get_fact(fact='StockholdersEquityNoteStockSplitConversionRatio1', form=Form._10Q, unit='pure')
 
-    def from_finacial_information(symbol : str, sec_facts : dict, stock_price_history) -> CompanyFacts:
+        if not stock_splits:
+            return None
+        
+        stock_split_for_date = {}
+
+        for split in stock_splits.values():
+            if split['end'] not in stock_split_for_date:
+                stock_split_for_date[split['end']] = split['val']
+
+        return stock_split_for_date
+
+    def __from_finacial_information(symbol : str, sec_facts : dict, stock_price_history) -> CompanyFacts:
         company_facts = CompanyFacts()
 
         company_facts.name = sec_facts['entityName']
@@ -58,7 +74,14 @@ class CompanyFacts:
 
         company_facts.__stock_price_history = stock_price_history
 
+        company_facts.__adjusted_outstanding_shares = company_facts.__calculate_adjusted_outstanding_shares()
+
         return company_facts
+    
+    def from_symbol(symbol : str, financial_api_wrapper : FinancialAPIsWrapper) -> CompanyFacts:
+        facts = financial_api_wrapper.get_company_facts(symbol=symbol)
+        stock_price_history = financial_api_wrapper.get_company_stock_price_history(symbol=symbol)
+        return CompanyFacts.__from_finacial_information(symbol=symbol, sec_facts=facts, stock_price_history=stock_price_history)
 
     def get_fact(self, fact : str, form : Form = Form._10Q, unit : str = None) -> dict | None:
         if not self.has_facts:
@@ -105,7 +128,10 @@ class CompanyFacts:
             'name' : self.name,
             'has_facts' : self.has_facts,
             'facts_by_form' : {},
-            'key_metrics_by_form' : {}
+            'key_metrics_by_form' : {},
+            'stock_price_history' : self.__stock_price_history,
+            'symbol' : self.symbol,
+            'adjusted_outstanding_shares' : self.__adjusted_outstanding_shares,
         }
 
         for form in self.__facts_by_form:
@@ -116,9 +142,45 @@ class CompanyFacts:
 
         return self_dict
 
-    def get_adjuted_stock_price_history(self, date : str, moment : str = None) -> dict | float | None:
+    def get_adjusted_stock_price(self, date : str, moment : str = None) -> dict | float | None:
         if not moment:
             return self.__stock_price_history[date]
         elif moment in self.__stock_price_history[date]:
             return self.__stock_price_history[date][moment]
         return None
+    
+    def __calculate_adjusted_outstanding_shares(self) -> float | None:
+        common_stock_outstanding = self.get_fact(fact='EntityCommonStockSharesOutstanding', form=Form._10Q, unit='shares')
+
+        if not common_stock_outstanding:
+            return None
+        
+        stock_splits = self.__get_stock_splits()
+
+        if not stock_splits:
+            return common_stock_outstanding
+        
+        adjusted_common_stock_outstanding = {}
+
+        for date in common_stock_outstanding:
+            common_stock_outstanding_for_date = common_stock_outstanding[date]['val']
+            
+            for split_date in stock_splits:
+                if split_date < date:
+                    common_stock_outstanding_for_date *= stock_splits[split_date]
+
+            adjusted_common_stock_outstanding[date] = {
+                'fy' : common_stock_outstanding[date]['fy'],
+                'val' : common_stock_outstanding_for_date,
+            }
+
+        return adjusted_common_stock_outstanding
+    
+    def get_adjusted_outstanding_shares(self, date : str) -> float | None:
+        if not self.__adjusted_outstanding_shares:
+            return None
+        
+        if date not in self.__adjusted_outstanding_shares:
+            return None
+
+        return self.__adjusted_outstanding_shares[date]['val']

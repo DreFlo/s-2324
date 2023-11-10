@@ -9,8 +9,6 @@ def current_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form.
 
     return {
         'fy' : current_assets[filed]['fy'],
-        'form' : current_assets[filed]['form'],
-        'filed' : filed,
         'val' : current_assets[filed]['val'] / current_liabilities[filed]['val'] if current_liabilities[filed]['val'] != 0 else None
         }
 
@@ -23,8 +21,6 @@ def debt_to_equity(company_facts : CompanyFacts, filed : str, form : Form = Form
 
     return {
         'fy' : long_term_debt[filed]['fy'],
-        'form' : long_term_debt[filed]['form'],
-        'filed' : filed,
         'val' : long_term_debt[filed]['val'] / stockholders_equity[filed]['val'] if stockholders_equity[filed]['val'] != 0 else None
         }
 
@@ -37,24 +33,20 @@ def debt_to_assets(company_facts : CompanyFacts, filed : str, form : Form = Form
 
     return {
         'fy' : long_term_debt[filed]['fy'],
-        'form' : long_term_debt[filed]['form'],
-        'filed' : filed,
         'val' : long_term_debt[filed]['val'] / assets[filed]['val'] if assets[filed]['val'] != 0 else None
         }
 
-def market_cap(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    common_stock_value = company_facts.get_fact(fact='CommonStockValue', form=form, unit=unit)
-    common_stock_shares_outstanding = company_facts.get_fact(fact='EntityCommonStockSharesOutstanding', form=form, unit='shares')
+# def market_cap(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     common_stock_value = company_facts.get_adjusted_stock_price(date=filed, moment='close')
+#     common_stock_shares_outstanding = company_facts.get_adjusted_outstanding_shares(date=filed)
 
-    if not common_stock_value or not common_stock_shares_outstanding or filed not in common_stock_value or filed not in common_stock_shares_outstanding:
-        return None
-
-    return {
-        'fy' : common_stock_value[filed]['fy'],
-        'form' : common_stock_value[filed]['form'],
-        'filed' : filed,
-        'val' : common_stock_value[filed]['val'] * common_stock_shares_outstanding[filed]['val']
-    }
+#     if common_stock_value is None or common_stock_shares_outstanding is None:
+#         return None
+    
+#     return {
+#         'fy' : filed,
+#         'val' : common_stock_value * common_stock_shares_outstanding
+#         }
 
 def expenses(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
     operating_expenses = company_facts.get_fact(fact='OperatingExpenses', form=form, unit=unit)
@@ -70,111 +62,95 @@ def expenses(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q,
     
     return {
         'fy' : operating_expenses[filed]['fy'],
-        'form' : operating_expenses[filed]['form'],
-        'filed' : filed,
         'val' : operating_expenses[filed]['val'] + interest_expenses[filed]['val'] + sgna_expenses[filed]['val'] + income_taxes[filed]['val'] + depreciation[filed]['val']
         }
 
-def price_to_earnings_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _market_cap = market_cap(company_facts, filed, form, unit)
-    net_income = company_facts.get_fact(fact='NetIncomeLoss', form=form, unit=unit)
+# def price_to_earnings_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _market_cap = market_cap(company_facts, filed, form, unit)
+#     net_income = company_facts.get_fact(fact='NetIncomeLoss', form=form, unit=unit)
 
-    if not _market_cap or not net_income or filed not in net_income:
-        return None
+#     if not _market_cap or not net_income or filed not in net_income:
+#         return None
     
-    return {
-        'fy' : _market_cap['fy'],
-        'form' : _market_cap['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] / net_income[filed]['val'] if net_income[filed]['val'] != 0 else None
-        }
+#     return {
+#         'fy' : _market_cap['fy'],
+#         'val' : _market_cap['val'] / net_income[filed]['val'] if net_income[filed]['val'] != 0 else None
+#         }
 
-def price_to_sales_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _market_cap = market_cap(company_facts, filed, form, unit)
-    _revenue = revenue(company_facts, filed, form, unit)
+# def price_to_sales_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _market_cap = market_cap(company_facts, filed, form, unit)
+#     _revenue = revenue(company_facts, filed, form, unit)
 
-    if not _market_cap or not _revenue:
-        return None
+#     if not _market_cap or not _revenue:
+#         return None
     
-    return {
-        'fy' : _market_cap['fy'],
-        'form' : _market_cap['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] / _revenue['val'] if _revenue['val'] != 0 else None
-        }
+#     return {
+#         'fy' : _market_cap['fy'],
+#         'val' : _market_cap['val'] / _revenue['val'] if _revenue['val'] != 0 else None
+#         }
 
-def price_to_cash_flow_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    operating_cash_flow = company_facts.get_fact(fact='NetCashProvidedByUsedInOperatingActivities', form=form, unit=unit)
+# def price_to_cash_flow_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     operating_cash_flow = company_facts.get_fact(fact='NetCashProvidedByUsedInOperatingActivities', form=form, unit=unit)
 
-    _market_cap = market_cap(company_facts, filed, form, unit)
+#     _market_cap = market_cap(company_facts, filed, form, unit)
 
-    if not operating_cash_flow or not _market_cap or filed not in operating_cash_flow:
-        return None
+#     if not operating_cash_flow or not _market_cap or filed not in operating_cash_flow:
+#         return None
     
-    return {
-        'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] / operating_cash_flow[filed]['val'] if operating_cash_flow[filed]['val'] != 0 else None
-        }
+#     return {
+#         'fy' : operating_cash_flow[filed]['fy'],
+#         'val' : _market_cap['val'] / operating_cash_flow[filed]['val'] if operating_cash_flow[filed]['val'] != 0 else None
+#         }
 
-def price_to_free_cash_flow_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _free_cash_flow = free_cash_flow(company_facts, filed, form, unit)
+# def price_to_free_cash_flow_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _free_cash_flow = free_cash_flow(company_facts, filed, form, unit)
 
-    _market_cap = market_cap(company_facts, filed, form, unit)
+#     _market_cap = market_cap(company_facts, filed, form, unit)
 
-    if not _free_cash_flow or not _market_cap:
-        return None
+#     if not _free_cash_flow or not _market_cap:
+#         return None
     
-    return {
-        'fy' : _free_cash_flow[filed]['fy'],
-        'form' : _free_cash_flow[filed]['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] / _free_cash_flow['val'] if _free_cash_flow['val'] != 0 else None
-        }
+#     return {
+#         'fy' : _free_cash_flow['fy'],
+#         'val' : _market_cap['val'] / _free_cash_flow['val'] if _free_cash_flow['val'] != 0 else None
+#         }
 
-def price_to_book_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _market_cap = market_cap(company_facts, filed, form, unit)
-    book_value = company_facts.get_fact(fact='StockholdersEquity', form=form, unit=unit)
+# def price_to_book_ratio(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _market_cap = market_cap(company_facts, filed, form, unit)
+#     book_value = company_facts.get_fact(fact='StockholdersEquity', form=form, unit=unit)
 
-    if not _market_cap or not book_value or filed not in book_value:
-        return None
+#     if not _market_cap or not book_value or filed not in book_value:
+#         return None
     
-    return {
-        'fy' : _market_cap['fy'],
-        'form' : _market_cap['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] / book_value[filed]['val'] if book_value[filed]['val'] != 0 else None
-        }
+#     return {
+#         'fy' : _market_cap['fy'],
+#         'val' : _market_cap['val'] / book_value[filed]['val'] if book_value[filed]['val'] != 0 else None
+#         }
 
-def enterprise_value(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _market_cap = market_cap(company_facts, filed, form, unit)
-    outstanding_debt = company_facts.get_fact(fact='LongTermDebt', form=form, unit=unit)
-    cash = company_facts.get_fact(fact='CashAndCashEquivalentsAtCarryingValue', form=form, unit=unit)
+# def enterprise_value(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _market_cap = market_cap(company_facts, filed, form, unit)
+#     outstanding_debt = company_facts.get_fact(fact='LongTermDebt', form=form, unit=unit)
+#     cash = company_facts.get_fact(fact='CashAndCashEquivalentsAtCarryingValue', form=form, unit=unit)
 
-    if not _market_cap or not outstanding_debt or not cash or filed not in outstanding_debt or filed not in cash:
-        return None
+#     if not _market_cap or not outstanding_debt or not cash or filed not in outstanding_debt or filed not in cash:
+#         return None
     
-    return {
-        'fy' : _market_cap['fy'],
-        'form' : _market_cap['form'],
-        'filed' : filed,
-        'val' : _market_cap['val'] + outstanding_debt[filed]['val'] - cash[filed]['val']
-        }
+#     return {
+#         'fy' : _market_cap['fy'],
+#         'val' : _market_cap['val'] + outstanding_debt[filed]['val'] - cash[filed]['val']
+#         }
 
-def sales_ratio_to_enterprise_value_to_sales(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
-    _enterprise_value = enterprise_value(company_facts, filed, form, unit)
-    _revenue = revenue(company_facts, filed, form, unit)
+# def sales_ratio_to_enterprise_value_to_sales(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
+#     _enterprise_value = enterprise_value(company_facts, filed, form, unit)
+#     _revenue = revenue(company_facts, filed, form, unit)
 
-    if not _enterprise_value or not _revenue:
-        return None
+#     if not _enterprise_value or not _revenue:
+#         return None
     
-    return {
-        'fy' : _enterprise_value['fy'],
-        'form' : _enterprise_value['form'],
-        'filed' : filed,
-        'val' : _enterprise_value['val'] / _revenue['val'] if _revenue['val'] != 0 else None
-        }
+#     return {
+#         'fy' : _enterprise_value['fy'],
+#         'val' : _enterprise_value['val'] / _revenue['val'] if _revenue['val'] != 0 else None
+#         }
 
 def revenue(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, unit : str = 'USD') -> dict | None:
     operating_income_loss = company_facts.get_fact(fact='OperatingIncomeLoss', form=form, unit=unit)
@@ -185,8 +161,6 @@ def revenue(company_facts : CompanyFacts, filed : str, form : Form = Form._10Q, 
     
     return {
         'fy' : operating_expenses[filed]['fy'],
-        'form' : operating_expenses[filed]['form'],
-        'filed' : filed,
         'val' : operating_income_loss[filed]['val'] + operating_expenses[filed]['val']
     }
 
@@ -199,8 +173,6 @@ def ebit(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit :
     
     return {
         'fy' : operating_income_loss[filed]['fy'],
-        'form' : operating_income_loss[filed]['form'],
-        'filed' : filed,
         'val' : operating_income_loss[filed]['val'] - cogs[filed]['val']
     }
 
@@ -213,52 +185,44 @@ def ebitda(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit
     
     return {
         'fy' : _ebit['fy'],
-        'form' : _ebit['form'],
-        'filed' : filed,
         'val' : _ebit['val'] + depreciation[filed]['val']
     }
 
-def enterprise_value_over_ebitda(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    _enterprise_value = enterprise_value(company_facts, filed, form, unit)
-    _ebitda = ebitda(company_facts, filed, form, unit)
+# def enterprise_value_over_ebitda(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     _enterprise_value = enterprise_value(company_facts, filed, form, unit)
+#     _ebitda = ebitda(company_facts, filed, form, unit)
 
-    if not _enterprise_value or not _ebitda:
-        return None
+#     if not _enterprise_value or not _ebitda:
+#         return None
     
-    return {
-        'fy' : _enterprise_value['fy'],
-        'form' : _enterprise_value['form'],
-        'filed' : filed,
-        'val' : _enterprise_value['val'] / _ebitda['val'] if _ebitda['val'] != 0 else None
-    }
+#     return {
+#         'fy' : _enterprise_value['fy'],
+#         'val' : _enterprise_value['val'] / _ebitda['val'] if _ebitda['val'] != 0 else None
+#     }
 
-def enterprise_value_to_operating_cash_flow(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    _enterprise_value = enterprise_value(company_facts, filed, form, unit)
-    operating_cash_flow = company_facts.get_fact(fact='NetCashProvidedByUsedInOperatingActivities', form=form, unit=unit)
+# def enterprise_value_to_operating_cash_flow(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     _enterprise_value = enterprise_value(company_facts, filed, form, unit)
+#     operating_cash_flow = company_facts.get_fact(fact='NetCashProvidedByUsedInOperatingActivities', form=form, unit=unit)
 
-    if not _enterprise_value or not operating_cash_flow or filed not in operating_cash_flow:
-        return None
+#     if not _enterprise_value or not operating_cash_flow or filed not in operating_cash_flow:
+#         return None
     
-    return {
-        'fy' : _enterprise_value['fy'],
-        'form' : _enterprise_value['form'],
-        'filed' : filed,
-        'val' : _enterprise_value['val'] / operating_cash_flow[filed]['val'] if operating_cash_flow[filed]['val'] != 0 else None
-    }
+#     return {
+#         'fy' : _enterprise_value['fy'],
+#         'val' : _enterprise_value['val'] / operating_cash_flow[filed]['val'] if operating_cash_flow[filed]['val'] != 0 else None
+#     }
 
-def earnings_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    _ebit = ebit(company_facts, filed, form, unit)
-    _market_cap = market_cap(company_facts, filed, form, unit)
+# def earnings_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     _ebit = ebit(company_facts, filed, form, unit)
+#     _market_cap = market_cap(company_facts, filed, form, unit)
 
-    if not _ebit or not _market_cap:
-        return None
+#     if not _ebit or not _market_cap:
+#         return None
     
-    return {
-        'fy' : _ebit['fy'],
-        'form' : _ebit['form'],
-        'filed' : filed,
-        'val' : _ebit['val'] / _market_cap['val'] if _market_cap['val'] != 0 else None
-    }
+#     return {
+#         'fy' : _ebit['fy'],
+#         'val' : _ebit['val'] / _market_cap['val'] if _market_cap['val'] != 0 else None
+#     }
 
 def free_cash_flow(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
     operating_cash_flow = company_facts.get_fact(fact='NetCashProvidedByUsedInOperatingActivities', form=form, unit=unit)
@@ -269,24 +233,20 @@ def free_cash_flow(company_facts: CompanyFacts, filed: str, form: Form = Form._1
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] - capital_expenditures[filed]['val']
     }
 
-def free_cash_flow_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    _free_cash_flow = free_cash_flow(company_facts, filed, form, unit)
-    _market_cap = market_cap(company_facts, filed, form, unit)
+# def free_cash_flow_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     _free_cash_flow = free_cash_flow(company_facts, filed, form, unit)
+#     _market_cap = market_cap(company_facts, filed, form, unit)
 
-    if not _free_cash_flow or not _market_cap:
-        return None
+#     if not _free_cash_flow or not _market_cap:
+#         return None
     
-    return {
-        'fy' : _free_cash_flow['fy'],
-        'form' : _free_cash_flow['form'],
-        'filed' : filed,
-        'val' : _free_cash_flow['val'] / _market_cap['val'] if _market_cap['val'] != 0 else None
-    }
+#     return {
+#         'fy' : _free_cash_flow['fy'],
+#         'val' : _free_cash_flow['val'] / _market_cap['val'] if _market_cap['val'] != 0 else None
+#     }
 
 def net_debt_to_ebitda(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
     total_debt = company_facts.get_fact(fact='Liabilities', form=form, unit=unit)
@@ -298,8 +258,6 @@ def net_debt_to_ebitda(company_facts: CompanyFacts, filed: str, form: Form = For
     
     return {
         'fy' : total_debt[filed]['fy'],
-        'form' : total_debt[filed]['form'],
-        'filed' : filed,
         'val' : (total_debt[filed]['val'] - cash[filed]['val']) / _ebitda['val'] if _ebitda['val'] != 0 else None
     }
 
@@ -312,8 +270,6 @@ def interest_coverage_ratio(company_facts: CompanyFacts, filed: str, form: Form 
     
     return {
         'fy' : _ebit['fy'],
-        'form' : _ebit['form'],
-        'filed' : filed,
         'val' : _ebit['val'] / interest_expense[filed]['val'] if interest_expense[filed]['val'] != 0 else None
     }
 
@@ -326,24 +282,20 @@ def income_quality(company_facts: CompanyFacts, filed: str, form: Form = Form._1
     
     return {
         'fy' : cash_flow_from_operations[filed]['fy'],
-        'form' : cash_flow_from_operations[filed]['form'],
-        'filed' : filed,
-        'val' : cash_flow_from_operations[filed]['val'] / net_income[filed]['val']
+        'val' : cash_flow_from_operations[filed]['val'] / net_income[filed]['val'] if net_income[filed]['val'] != 0 else None
     }
 
-def dividend_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    dividends = company_facts.get_fact(fact='Dividends', form=form, unit=unit)
-    _market_cap = market_cap(company_facts, filed, form, unit)
+# def dividend_yield(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     dividends = company_facts.get_fact(fact='Dividends', form=form, unit=unit)
+#     _market_cap = market_cap(company_facts, filed, form, unit)
 
-    if not dividends or not _market_cap or filed not in dividends:
-        return None
+#     if not dividends or not _market_cap or filed not in dividends:
+#         return None
     
-    return {
-        'fy' : dividends[filed]['fy'],
-        'form' : dividends[filed]['form'],
-        'filed' : filed,
-        'val' : dividends[filed]['val'] / _market_cap['val']
-    }
+#     return {
+#         'fy' : dividends[filed]['fy'],
+#         'val' : dividends[filed]['val'] / _market_cap['val']
+#     }
 
 def payout_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
     dividends = company_facts.get_fact(fact='Dividends', form=form, unit=unit)
@@ -354,9 +306,7 @@ def payout_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q
     
     return {
         'fy' : dividends[filed]['fy'],
-        'form' : dividends[filed]['form'],
-        'filed' : filed,
-        'val' : dividends[filed]['val'] / net_income[filed]['val']
+        'val' : dividends[filed]['val'] / net_income[filed]['val'] if net_income[filed]['val'] != 0 else None
     }
 
 def sales_general_and_administrative_to_revenue(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
@@ -368,8 +318,6 @@ def sales_general_and_administrative_to_revenue(company_facts: CompanyFacts, fil
     
     return {
         'fy' : sgna_expenses[filed]['fy'],
-        'form' : sgna_expenses[filed]['form'],
-        'filed' : filed,
         'val' : sgna_expenses[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -383,8 +331,6 @@ def return_on_tangible_assets(company_facts: CompanyFacts, filed: str, form: For
     
     return {
         'fy' : _ebit['fy'],
-        'form' : _ebit['form'],
-        'filed' : filed,
         'val' : _ebit['val'] / (tangible_assets[filed]['val'] - goodwill[filed]['val']) if tangible_assets[filed]['val'] - goodwill[filed]['val'] != 0 else None
     }
 
@@ -398,8 +344,6 @@ def tangible_asset_value(company_facts: CompanyFacts, filed: str, form: Form = F
     
     return {
         'fy' : tangible_assets[filed]['fy'],
-        'form' : tangible_assets[filed]['form'],
-        'filed' : filed,
         'val' : tangible_assets[filed]['val'] - goodwill[filed]['val'] - liabilities[filed]['val']
     }
 
@@ -412,8 +356,6 @@ def working_capital(company_facts: CompanyFacts, filed: str, form: Form = Form._
     
     return {
         'fy' : current_assets[filed]['fy'],
-        'form' : current_assets[filed]['form'],
-        'filed' : filed,
         'val' : current_assets[filed]['val'] - current_liabilities[filed]['val']
     }
 
@@ -426,8 +368,6 @@ def net_current_asset_value(company_facts: CompanyFacts, filed: str, form: Form 
     
     return {
         'fy' : current_assets[filed]['fy'],
-        'form' : current_assets[filed]['form'],
-        'filed' : filed,
         'val' : current_assets[filed]['val'] - current_liabilities[filed]['val']
     }
 
@@ -440,8 +380,6 @@ def revenue_per_share(company_facts: CompanyFacts, filed: str, form: Form = Form
     
     return {
         'fy' : _revenue['fy'],
-        'form' : _revenue['form'],
-        'filed' : filed,
         'val' : _revenue['val'] / outstanding_shares[filed]['val'] if outstanding_shares[filed]['val'] != 0 else None
     }
 
@@ -455,8 +393,6 @@ def interest_debt_per_share(company_facts: CompanyFacts, filed: str, form: Form 
     
     return {
         'fy' : interest_expense[filed]['fy'],
-        'form' : interest_expense[filed]['form'],
-        'filed' : filed,
         'val' : (interest_expense[filed]['val'] + outstanding_debt[filed]['val']) / outstanding_shares[filed]['val'] if outstanding_shares[filed]['val'] != 0 else None
     }
 
@@ -469,8 +405,6 @@ def return_on_equity(company_facts: CompanyFacts, filed: str, form: Form = Form.
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / stockholders_equity[filed]['val'] if stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -483,8 +417,6 @@ def capex_per_share(company_facts: CompanyFacts, filed: str, form: Form = Form._
     
     return {
         'fy' : capex[filed]['fy'],
-        'form' : capex[filed]['form'],
-        'filed' : filed,
         'val' : capex[filed]['val'] / outstanding_shares[filed]['val'] if outstanding_shares[filed]['val'] != 0 else None
     }
 
@@ -498,8 +430,6 @@ def quick_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q,
     
     return {
         'fy' : current_assets[filed]['fy'],
-        'form' : current_assets[filed]['form'],
-        'filed' : filed,
         'val' : (current_assets[filed]['val'] - inventory[filed]['val']) / current_liabilities[filed]['val'] if current_liabilities[filed]['val'] != 0 else None
     }
 
@@ -512,8 +442,6 @@ def cash_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, 
     
     return {
         'fy' : cash[filed]['fy'],
-        'form' : cash[filed]['form'],
-        'filed' : filed,
         'val' : cash[filed]['val'] / current_liabilities[filed]['val'] if current_liabilities[filed]['val'] != 0 else None
     }
 
@@ -526,8 +454,6 @@ def gross_profit_margin(company_facts: CompanyFacts, filed: str, form: Form = Fo
     
     return {
         'fy' : gross_profit[filed]['fy'],
-        'form' : gross_profit[filed]['form'],
-        'filed' : filed,
         'val' : gross_profit[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -540,8 +466,6 @@ def return_on_assets(company_facts: CompanyFacts, filed: str, form: Form = Form.
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / assets[filed]['val'] if assets[filed]['val'] != 0 else None
     }
 
@@ -554,8 +478,6 @@ def return_on_equity(company_facts: CompanyFacts, filed: str, form: Form = Form.
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / stockholders_equity[filed]['val'] if stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -569,8 +491,6 @@ def return_on_capital_employed(company_facts: CompanyFacts, filed: str, form: Fo
     
     return {
         'fy' : _ebit['fy'],
-        'form' : _ebit['form'],
-        'filed' : filed,
         'val' : _ebit['val'] / (total_assets[filed]['val'] - current_liabilities[filed]['val']) if (total_assets[filed]['val'] - current_liabilities[filed]['val']) != 0 else None
     }
 
@@ -583,8 +503,6 @@ def company_equity_multiplier(company_facts: CompanyFacts, filed: str, form: For
     
     return {
         'fy' : total_assets[filed]['fy'],
-        'form' : total_assets[filed]['form'],
-        'filed' : filed,
         'val' : total_assets[filed]['val'] / stockholders_equity[filed]['val'] if stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -597,8 +515,6 @@ def net_income_per_ebt(company_facts: CompanyFacts, filed: str, form: Form = For
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / ebt[filed]['val'] if ebt[filed]['val'] != 0 else None
     }
 
@@ -611,8 +527,6 @@ def long_term_debt_to_capitalization(company_facts: CompanyFacts, filed: str, fo
     
     return {
         'fy' : long_term_debt[filed]['fy'],
-        'form' : long_term_debt[filed]['form'],
-        'filed' : filed,
         'val' : long_term_debt[filed]['val'] / total_stockholders_equity[filed]['val'] if total_stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -625,8 +539,6 @@ def total_debt_to_capitalization(company_facts: CompanyFacts, filed: str, form: 
     
     return {
         'fy' : total_debt[filed]['fy'],
-        'form' : total_debt[filed]['form'],
-        'filed' : filed,
         'val' : total_debt[filed]['val'] / total_stockholders_equity[filed]['val'] if total_stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -639,8 +551,6 @@ def fixed_asset_turnover(company_facts: CompanyFacts, filed: str, form: Form = F
     
     return {
         'fy' : _revenue['fy'],
-        'form' : _revenue['form'],
-        'filed' : filed,
         'val' : _revenue['val'] / net_ppe[filed]['val'] if net_ppe[filed]['val'] != 0 else None
     }
 
@@ -653,8 +563,6 @@ def operating_cash_flow_sales_ratio(company_facts: CompanyFacts, filed: str, for
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -667,8 +575,6 @@ def free_cash_flow_sales_ratio(company_facts: CompanyFacts, filed: str, form: Fo
     
     return {
         'fy' : _free_cash_flow['fy'],
-        'form' : _free_cash_flow['form'],
-        'filed' : filed,
         'val' : _free_cash_flow['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -681,8 +587,6 @@ def cash_flow_coverage_ratio(company_facts: CompanyFacts, filed: str, form: Form
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] / outstanding_debt[filed]['val'] if outstanding_debt[filed]['val'] != 0 else None
     }
 
@@ -697,8 +601,6 @@ def short_term_coverage_ratio(company_facts: CompanyFacts, filed: str, form: For
     
     return {
         'fy' : cash[filed]['fy'],
-        'form' : cash[filed]['form'],
-        'filed' : filed,
         'val' : (cash[filed]['val'] + short_term_investments[filed]['val'] + receivables[filed]['val']) / current_liabilities[filed]['val'] if current_liabilities[filed]['val'] != 0 else None
     }
 
@@ -711,8 +613,6 @@ def capital_expenditure_coverage_ratio(company_facts: CompanyFacts, filed: str, 
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] / capital_expenditures[filed]['val'] if capital_expenditures[filed]['val'] != 0 else None
     }
 
@@ -726,8 +626,6 @@ def dividend_paid_and_capex_coverage_ratio(company_facts: CompanyFacts, filed: s
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] / (dividends[filed]['val'] + capital_expenditures[filed]['val']) if (dividends[filed]['val'] + capital_expenditures[filed]['val']) != 0 else None
     }
 
@@ -740,8 +638,6 @@ def operating_profit_margin(company_facts: CompanyFacts, filed: str, form: Form 
     
     return {
         'fy' : operating_income_loss[filed]['fy'],
-        'form' : operating_income_loss[filed]['form'],
-        'filed' : filed,
         'val' : operating_income_loss[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -754,8 +650,6 @@ def pretax_profit_margin(company_facts: CompanyFacts, filed: str, form: Form = F
     
     return {
         'fy' : ebt[filed]['fy'],
-        'form' : ebt[filed]['form'],
-        'filed' : filed,
         'val' : ebt[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -768,8 +662,6 @@ def net_profit_margin(company_facts: CompanyFacts, filed: str, form: Form = Form
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / _revenue['val'] if _revenue['val'] != 0 else None
     }
 
@@ -782,8 +674,6 @@ def ni_per_ebt(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, 
     
     return {
         'fy' : net_income[filed]['fy'],
-        'form' : net_income[filed]['form'],
-        'filed' : filed,
         'val' : net_income[filed]['val'] / ebt[filed]['val'] if ebt[filed]['val'] != 0 else None
     }
 
@@ -796,8 +686,6 @@ def ebt_per_ebit(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q
     
     return {
         'fy' : ebt[filed]['fy'],
-        'form' : ebt[filed]['form'],
-        'filed' : filed,
         'val' : ebt[filed]['val'] / _ebit['val'] if _ebit['val'] != 0 else None
     }
 
@@ -810,8 +698,6 @@ def debt_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, 
     
     return {
         'fy' : total_liabilities[filed]['fy'],
-        'form' : total_liabilities[filed]['form'],
-        'filed' : filed,
         'val' : total_liabilities[filed]['val'] / total_assets[filed]['val'] if total_assets[filed]['val'] != 0 else None
     }
 
@@ -824,8 +710,6 @@ def debt_equity_ratio(company_facts: CompanyFacts, filed: str, form: Form = Form
     
     return {
         'fy' : total_liabilities[filed]['fy'],
-        'form' : total_liabilities[filed]['form'],
-        'filed' : filed,
         'val' : total_liabilities[filed]['val'] / stockholders_equity[filed]['val'] if stockholders_equity[filed]['val'] != 0 else None
     }
 
@@ -838,8 +722,6 @@ def cash_flow_to_debt_ratio(company_facts: CompanyFacts, filed: str, form: Form 
     
     return {
         'fy' : operating_cash_flow[filed]['fy'],
-        'form' : operating_cash_flow[filed]['form'],
-        'filed' : filed,
         'val' : operating_cash_flow[filed]['val'] / total_debt[filed]['val'] if total_debt[filed]['val'] != 0 else None
     }
 
@@ -852,24 +734,20 @@ def asset_turnover(company_facts: CompanyFacts, filed: str, form: Form = Form._1
     
     return {
         'fy' : _revenue['fy'],
-        'form' : _revenue['form'],
-        'filed' : filed,
         'val' : _revenue['val'] / total_assets[filed]['val'] if total_assets[filed]['val'] != 0 else None
     }
 
-def enterprise_value_multiplier(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
-    _enterprise_value = enterprise_value(company_facts, filed, form, unit)
-    _ebitda = ebitda(company_facts, filed, form, unit)
+# def enterprise_value_multiplier(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> float | None:
+#     _enterprise_value = enterprise_value(company_facts, filed, form, unit)
+#     _ebitda = ebitda(company_facts, filed, form, unit)
 
-    if not _enterprise_value or not _ebitda:
-        return None
+#     if not _enterprise_value or not _ebitda:
+#         return None
     
-    return {
-        'fy' : _enterprise_value['fy'],
-        'form' : _enterprise_value['form'],
-        'filed' : filed,
-        'val' : _enterprise_value['val'] / _ebitda['val'] if _ebitda['val'] != 0 else None
-    }
+#     return {
+#         'fy' : _enterprise_value['fy'],
+#         'val' : _enterprise_value['val'] / _ebitda['val'] if _ebitda['val'] != 0 else None
+#     }
 
 def return_on_invested_capital(company_facts: CompanyFacts, filed: str, form: Form = Form._10Q, unit : str = 'USD') -> dict | None:
     assets = company_facts.get_fact(fact='Assets', form=form, unit=unit)
@@ -883,8 +761,6 @@ def return_on_invested_capital(company_facts: CompanyFacts, filed: str, form: Fo
     
     return {
         'fy' : assets[filed]['fy'],
-        'form' : assets[filed]['form'],
-        'filed' : filed,
         'val' : ROI
     }
     
@@ -892,27 +768,27 @@ key_metric_function_map = {
     'CurrentRatio' : current_ratio,
     'DebtToEquity' : debt_to_equity,
     'DebtToAssets' : debt_to_assets,
-    'MarketCapitalization' : market_cap,
+    # 'MarketCapitalization' : market_cap,
     'Expenses' : expenses,
-    'PriceToEarningsRatio' : price_to_earnings_ratio,
-    'PriceToSalesRatio' : price_to_sales_ratio,
-    'PriceToCashFlowRatio' : price_to_cash_flow_ratio,
-    'PriceToFreeCashFlowsRatio' : price_to_free_cash_flow_ratio,
-    'PriceToBookRatio' : price_to_book_ratio,
-    'EnterpriseValue' : enterprise_value,
-    'SalesRatioToEnterpriseValueSales' : sales_ratio_to_enterprise_value_to_sales,
+    # 'PriceToEarningsRatio' : price_to_earnings_ratio,
+    # 'PriceToSalesRatio' : price_to_sales_ratio,
+    # 'PriceToCashFlowRatio' : price_to_cash_flow_ratio,
+    # 'PriceToFreeCashFlowsRatio' : price_to_free_cash_flow_ratio,
+    # 'PriceToBookRatio' : price_to_book_ratio,
+    # 'EnterpriseValue' : enterprise_value,
+    # 'SalesRatioToEnterpriseValueSales' : sales_ratio_to_enterprise_value_to_sales,
     'Revenue' : revenue,
     'EBIT' : ebit,
     'EBITDA' : ebitda,
-    'EnterpriseValueOverEBITDA' : enterprise_value_over_ebitda,
-    'EnterpriseValueToOperatingCashFlow' : enterprise_value_to_operating_cash_flow,
-    'EarningsYield' : earnings_yield,
+    # 'EnterpriseValueOverEBITDA' : enterprise_value_over_ebitda,
+    # 'EnterpriseValueToOperatingCashFlow' : enterprise_value_to_operating_cash_flow,
+    # 'EarningsYield' : earnings_yield,
     'FreeCashFlow' : free_cash_flow,
-    'FreeCashFlowYield' : free_cash_flow_yield,
+    # 'FreeCashFlowYield' : free_cash_flow_yield,
     'NetDebtToEBITDA' : net_debt_to_ebitda,
     'InterestCoverageRatio' : interest_coverage_ratio,
     'IncomeQuality' : income_quality,
-    'DividendYield' : dividend_yield,
+    # 'DividendYield' : dividend_yield,
     'PayoutRatio' : payout_ratio,
     'SalesGeneralAndAdministrativeToRevenue' : sales_general_and_administrative_to_revenue,
     'ReturnOnTangibleAssets' : return_on_tangible_assets,
@@ -949,6 +825,6 @@ key_metric_function_map = {
     'DebtEquityRatio' : debt_equity_ratio,
     'CashFlowToDebtRatio' : cash_flow_to_debt_ratio,
     'AssetTurnover' : asset_turnover,
-    'EnterpriseValueMultiplier' : enterprise_value_multiplier,
+    # 'EnterpriseValueMultiplier' : enterprise_value_multiplier,
     'ReturnOnInvestedCapital' : return_on_invested_capital
 }
