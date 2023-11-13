@@ -4,11 +4,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import shap
+import timeshap
+
+from timeshap.utils import calc_avg_event
+from timeshap.explainer import local_feat
 
 #tf.compat.v1.disable_v2_behavior() - this removes an error but we get others
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+import tensorflow as tf
 
 
 # Temporarily using a subset of the data since it's much quicker to load
@@ -24,8 +27,6 @@ def create_subset(size):
         json.dump(subset_dictionary, file)
         
     return
-
-model = Sequential()
 
 def data_prep():
     with open(data_file_path, 'r') as file:
@@ -56,44 +57,23 @@ def data_prep():
                 else:
                     data_array[i, j, k] = np.nan
     
-    print(data_array.shape)
+    return data_array, symbols, dates, metrics
     
-    num_companies, num_dates, num_metrics = data_array.shape
-    
-    labels = np.random.randint(2, size=(num_companies,))
-    
-    x_train = data_array[:90]
-    y_train = labels[:90]
-    
-    x_test = data_array[90:]
-    y_test = labels[90:]
-    
-    print(x_train.shape, y_train.shape)
-    print(x_test.shape, y_test.shape)
-    
-    model.add(LSTM(50, input_shape=(num_dates, num_metrics)))
-    model.add(Dense(1, activation='sigmoid'))
-
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
-    model.fit(x_train, y_train, epochs=10, batch_size=32)
-    
-    predictions = model.predict(x_test)    
-    y_pred = (predictions > 0.5).astype(int)
-    
-    fig = go.Figure()
+    """ fig = go.Figure()
     fig.add_trace(go.Scatter(y=y_test, mode='lines', name='Actual'))
     fig.add_trace(go.Scatter(y=y_pred, mode='lines+markers', name='Predicted'))
-    fig.show()
+    fig.show() """
     
+    #average_event = calc_avg_event(data_array, num_metrics)
+    #print(average_event)
     # Everything above this is fully working
     
     # Below is for explainer stuff
     
     # Use the training data for deep explainer => can use fewer instances
-    explainer = shap.DeepExplainer(model, x_train)
+    #explainer = shap.DeepExplainer(model, x_train)
     
-    shap_values = explainer.shap_values(x_test[:5])
+    #shap_values = explainer.shap_values(x_test[:5])
     
     # init the JS visualization code
     #shap.initjs()
@@ -107,8 +87,61 @@ def data_prep():
     
     return
 
+def create_model(data_array, symbols, dates, metrics):
+    num_companies, num_dates, num_metrics = data_array.shape
+    
+    labels = np.random.randint(2, size=(num_companies,))
+    
+    x_train = data_array[:90]
+    y_train = labels[:90]
+    
+    x_test = data_array[90:]
+    y_test = labels[90:]
+    
+    print(x_train.shape, y_train.shape)
+    print(x_test.shape, y_test.shape)
+    
+    model = tf.keras.Sequential()
+    
+    model.add(tf.keras.layers.LSTM(50, input_shape=(num_dates, num_metrics)))
+    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    model.fit(x_train, y_train, epochs=10, batch_size=32)
+    
+    model.save('resources/model.keras')
+    
+    predictions = model.predict(x_test)    
+    y_pred = (predictions > 0.5).astype(int)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(y=y_test, mode='lines', name='Actual'))
+    fig.add_trace(go.Scatter(y=y_pred, mode='lines+markers', name='Predicted'))
+    fig.show()
+    
+    return
+
+def explain_model(data_array, symbols, dates, metrics):
+    print(data_array.shape)
+    
+    #model = tf.keras.models.load_model('resources/model.keras')
+    
+    #f_hs = lambda x, y=None: model.predict_last_hs(x, y)
+    #pos_x_data = data_array[metrics]
+    
+    #local_feat()
+    
+    
+    #print(metrics)
+    
+    #average_event = calc_avg_event(data_array, numerical_feats=metrics, categorical_feats=[])
+    #print(average_event)
+    
+    return
 
 if __name__ == '__main__':
     #create_subset(100)
-    data_prep()
+    data_array, symbols, dates, metrics = data_prep()
+    #create_model(data_array, symbols, dates, metrics)
+    explain_model(data_array, symbols, dates, metrics)
