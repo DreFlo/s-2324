@@ -4,10 +4,10 @@ from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
 from model.company_facts import CompanyFacts
 from random import shuffle
 
-def get_aapl_data():
-    company_facts = CompanyFacts.from_symbol(symbol='AAPL', financial_api_wrapper=FinancialAPIsWrapper)
+def get_company_data(symbol: str):
+    company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
 
-    with open('resources/aapl_data.json', 'w') as f:
+    with open(f'resources/{symbol}_data.json', 'w') as f:
         f.write(json.dumps(company_facts.to_dict(), indent=2))
 
 def get_test_data():
@@ -40,4 +40,5 @@ def get_test_data():
 
 if __name__ == '__main__':
     #get_aapl_data()
-    get_test_data()
+    #get_test_data()
+    get_company_data('AAPL')

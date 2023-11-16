@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import statistics
+import random
 
 from datetime import datetime, timedelta
 from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedStratifiedKFold
@@ -20,8 +21,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from lightgbm import LGBMClassifier
 
 # Temporarily using a subset of the data since it's much quicker to load
-data_file_path = 'resources/test_data_subset_10.json'
-dataframe_file_path = 'resources/data_subset_10.csv'
+data_file_path = 'resources/test_data_subset_100.json'
+dataframe_file_path = 'resources/data_subset_100.csv'
 
 def create_subset(size):
     with open('resources/test_data.json', 'r') as file:
@@ -30,79 +31,99 @@ def create_subset(size):
     subset_dictionary = {key: data[key] for key in list(data.keys())[:size]}
     
     with open('resources/test_data_subset_' + str(size) + '.json', 'w') as file:
-        json.dump(subset_dictionary, file)
+        json.dump(subset_dictionary, file, indent=2)
         
     return
-
-def is_less_than_one_month_apart(date1, date2):
-    if date2 > date1:
-        difference = abs(date1 - date2)
-        
-        one_month = timedelta(days=30)
-        
-        return difference < one_month
 
 def data_prep():
     with open(data_file_path, 'r') as file:
         data = json.load(file)
 
     symbols = list(data.keys())
-    
-    dates = list(data[symbols[0]]['facts_by_form']['10-Q']['fileds']) + list(data[symbols[0]]['facts_by_form']['10-K']['fileds'])
-    dates.sort()
-    
+        
     metrics = list(data[symbols[0]]['key_metrics_by_form']['10-Q'].keys())
     
     df = pd.DataFrame(columns=['symbol'])
+    
+    df['stock_change_before'] = None
+    df['buy'] = None
     
     for metric in metrics:
         df[metric + '_last'] = None
         df[metric + '_sec_last'] = None
         df[metric + '_third_last'] = None
     
-    df['buy'] = None
-    
     for symbol in symbols:
-        for j, date in enumerate(dates):
-            if(j > 3 and j < len(dates) - 1):
-                date_dt = datetime.strptime(date, '%Y-%m-%d')
-                encoded_symbol = LabelEncoder().fit_transform([symbol])[0]
-                row_values = [encoded_symbol]
+        dates = list(data[symbol]['facts_by_form']['10-Q']['fileds']) + list(data[symbol]['facts_by_form']['10-K']['fileds'])
+        dates = list(set(dates))
+        dates.sort()
+        
+        if len(dates) < 6:
+            continue
+        
+        encoded_symbol = LabelEncoder().fit_transform([symbol])[0]
+        
+        start_date = datetime.strptime(dates[3], '%Y-%m-%d')
+        end_date = datetime.strptime(dates[-2], '%Y-%m-%d')
+        random_dates = []
+
+        for _ in range(len(dates) // 2):
+            random_date = start_date + (end_date - start_date) * random.random()
+            random_dates.append(random_date.strftime('%Y-%m-%d'))
+        
+        for date in random_dates:
+            date_dt = datetime.strptime(date, '%Y-%m-%d')
+            row_values = [encoded_symbol]
+            
+            stock_dates = list(data[symbol]['stock_price_history'].keys())
+            stock_change_over = []
+            stock_change_before = []
+            for i, stock_date in enumerate(stock_dates):
+                stock_date_dt = datetime.strptime(stock_date, '%Y-%m-%d')
                 
-                for metric in metrics: 
-                    for d in [date, dates[j-1], dates[j-2]]:
-                        if d in data[symbol]['key_metrics_by_form']['10-Q'][metric]:
-                            if type(data[symbol]['key_metrics_by_form']['10-Q'][metric][d]) == dict:
-                                row_values.append(data[symbol]['key_metrics_by_form']['10-Q'][metric][d]['val'])
-                            else: 
-                                row_values.append(np.nan)
-                        elif d in data[symbol]['key_metrics_by_form']['10-K'][metric]:
-                            if type(data[symbol]['key_metrics_by_form']['10-K'][metric][d]) == dict:
-                                row_values.append(data[symbol]['key_metrics_by_form']['10-K'][metric][d]['val'])
-                            else: 
-                                row_values.append(np.nan)
-                        else:
-                            row_values.append(np.nan)
+                if (stock_date_dt - date_dt).days < 30 and (stock_date_dt - date_dt).days > 0:
+                    stock_change_over.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['close'])
+                elif (stock_date_dt - date_dt).days > -30 and (stock_date_dt - date_dt).days < 0:
+                    stock_change_before.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['close'])
+            
+            if len(stock_change_over) == 0 or len(stock_change_before) == 0:
+                continue
+            else:
+                row_values.append(statistics.median(stock_change_before))
                 
-                stock_dates = list(data[symbol]['stock_price_history'].keys())
-                stock_change = []
-                for i, stock_date in enumerate(stock_dates):
-                    stock_date_dt = datetime.strptime(stock_date, '%Y-%m-%d')
-                    if is_less_than_one_month_apart(date_dt, stock_date_dt):
-                        stock_change.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['open'])
-                        break
-                
-                if len(stock_change) == 0:
-                    continue
+                median_over = statistics.median(stock_change_over)
+                if median_over > 0:
+                    row_values.append(1)
                 else:
-                    median = statistics.median(stock_change)
-                    if median > 0:
-                        row_values.append(1)
-                    else:
-                        row_values.append(0)
-                        
-                    df.loc[len(df)] = row_values
-    
+                    row_values.append(0)
+            
+            dates_before = [_date for _date in dates if _date <= date]
+            
+            for metric in metrics: 
+                found_no = 0
+
+                for _date in dates_before[::-1]:
+                    if found_no == 3:
+                        break
+                    
+                    if _date in data[symbol]['key_metrics_by_form']['10-Q'][metric]:
+                        if type(data[symbol]['key_metrics_by_form']['10-Q'][metric][_date]) == dict:
+                            row_values.append(data[symbol]['key_metrics_by_form']['10-Q'][metric][_date]['val'])
+                            found_no += 1
+                            continue
+                    
+                    if _date in data[symbol]['key_metrics_by_form']['10-K'][metric]:
+                        if type(data[symbol]['key_metrics_by_form']['10-K'][metric][_date]) == dict:
+                            row_values.append(data[symbol]['key_metrics_by_form']['10-K'][metric][_date]['val'])
+                            found_no += 1
+                            continue
+                
+                while found_no < 3:
+                    row_values.append(np.nan)
+                    found_no += 1
+
+            df.loc[len(df)] = row_values
+                
     df.dropna(how='all', inplace=True)
     
     df.to_csv(dataframe_file_path, index=False)
@@ -237,11 +258,21 @@ def create_model():
     
     return
 
+
+def check_data():
+    df = pd.read_csv(dataframe_file_path)
+    
+    print("Rows: ", len(df))
+    for col in df.columns:
+        print(col, ": ", (df[col].isnull().sum()/len(df)) * 100, "%")
+
 def explain_model():
     
     return
 
 if __name__ == '__main__':
-    #data_prep()
+    #create_subset(10)
+    data_prep()
     create_model()
+    #check_data()
     

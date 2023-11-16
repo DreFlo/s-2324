@@ -70,7 +70,7 @@ class CompanyFacts:
         for form in Form:
             company_facts.__facts_by_form[form] = CompanyFacts.__get_form_from_sec_facts(sec_facts=sec_facts['facts'], form=form)
 
-        company_facts.has_facts = True
+        company_facts.has_facts = sum([len(company_facts.__facts_by_form['fileds']) > 0 for form in company_facts.__facts_by_form])
 
         company_facts.__stock_price_history = stock_price_history
 
