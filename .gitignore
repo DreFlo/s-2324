@@ -6,3 +6,4 @@ token.json
 /backend/external_apis/credentials.json
 /backend/resources/test_data.json
 /backend/resources/test_data_subset_100.json
+/backend/resources/test_data_subset_300.json
