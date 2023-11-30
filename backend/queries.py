@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 import statistics
 import numpy as np
+import joblib
 
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
@@ -74,20 +75,34 @@ def create_df_row():
         
     return df
 
-def get_company_info(company_name):
+def get_company_pred(company_name):
     
+    #Get company info
     """ symbol = company_name
     company_info = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper).to_dict()
     
     print(company_info) """
     
+    #Create dataframe from info
     df = create_df_row()
     
-    print(df)
+    #Load model and select features
+    model = joblib.load('model.pkl') 
     
+    # selected_features = model.selected_features
+    selected_features = ['stock_change_before', 'total_revenue_last']
     
-    return
+    #Select features from dataframe
+    df = df[selected_features]
+    
+    #Get prediction probability [[0.1, 0.9]]
+    pred_proba = model.predict_proba(df)
+    
+    recommendation = pred_proba[0][1] > 0.5
+    probability = pred_proba[0][1]
+    
+    return {'recommendation': recommendation, 'probability': probability}
 
 
 if __name__ == '__main__':
-    get_company_info('AAPL')
+    get_company_pred('AAPL')

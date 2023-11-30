@@ -32,5 +32,10 @@
     components: {
         RankingTable,
     },
+    methods: {
+        searchCompany() {
+            //Add axios call
+        }
+    },
     });
 </script>
