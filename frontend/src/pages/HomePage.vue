@@ -8,16 +8,16 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-xl-1"></div>
-            <div class="col-md-6 col-xl-7 text-center align-self-center">
+            <div class="col-2"></div>
+            <div class="col-6 text-center align-self-center">
                 <input class="form-control-lg" type="search" placeholder="Search for a Company..." style="width: 100%;border-radius: 15px;border: 2px solid #1C7330 ;">
             </div>
-            <div class="col-md-6 col-xl-2 text-center align-self-center">
+            <div class="col-2 col-xl-2 text-center align-self-center">
                 <button class="btn btn-primary btn-lg" type="submit" style="background: #1C7330;">
                     Search
                 </button>
             </div>
-            <div class="col"></div>
+            <div class="col-2"></div>
         </div>
     </div>
     <RankingTable :numRankings=3 />

@@ -2,7 +2,7 @@
     <div class="container p-5">
         <div class="row">
             <div class="col-md-12">
-                <p class="fs-5 fw-bolder text-center" style="margin-bottom: 1%;margin-top: 1%;color: #1C7330;">
+                <p class="fs-5 fw-bolder text-center" style="margin-bottom: 1%;color: #1C7330;">
                     Top Recommendations
                 </p>
             </div>

@@ -4,9 +4,10 @@
       <a class="navbar-brand fs-4 fw-bold" href="#" style="--bs-body-color: #1C7330;color: #1C7330;">
         Money Talks
       </a>
-      <button data-bs-toggle="collapse" class="navbar-toggler" data-bs-target="#navcol-1"></button>
-      <div class="collapse navbar-collapse" id="navcol-1">
-        
+      <div class="navbar-text" id="navcol-1">
+        <a href="#" style="color:#1C7335; text-decoration: none;">
+            Top Recommendations
+        </a>
       </div>
     </div>
   </nav>
