@@ -18,11 +18,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 from skopt import BayesSearchCV
+
+from imblearn.over_sampling import SMOTE
+
 
 def load_to_dataframe(data_file_path : str, sample_size : int | None = None):
     data = json.load(open(data_file_path, 'r'))
@@ -203,8 +206,8 @@ def log_function(func, *args, **kwargs):
 
     return result
 
-if __name__ == '__main__':
-    df = log_function(load_to_dataframe, 'resources/test_data.json', sample_size=300)
+def make_model(model_name, params) -> XGBClassifier:
+    df = log_function(load_to_dataframe, 'resources/test_data.json', sample_size=600)
     
     X = df.drop(['symbol', 'buy'], axis=1)
     y = df['buy']
@@ -212,34 +215,59 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = log_function(train_test_split, X, y, random_state=42)
     
     X_train, X_test = log_function(scale_data, X_train, X_test)
+
+    oversample = SMOTE(random_state=1234)
+    X_train, y_train = oversample.fit_resample(X_train, y_train)
     
-    model = XGBClassifier(random_state=42)
+    model = model_name(random_state=42)
     model.fit(X_train, y_train)
 
     log_function(test_model, model, X_test, y_test)
 
     best_threshold = log_function(get_best_feature_importance_threshold, model, X_train, y_train, X_test, y_test)
 
-    X_train_selected, X_test_selected = log_function(select_features, model, X_train, y_train, X_test, y_test, threshold=best_threshold)
+    X_train, X_test = log_function(select_features, model, X_train, y_train, X_test, y_test, threshold=best_threshold)
 
-    model = XGBClassifier(random_state=42)
-    model.fit(X_train_selected, y_train)
+    model = model_name(random_state=42)
+    model.fit(X_train, y_train)
 
-    log_function(test_model, model, X_test_selected, y_test)
-
-    params = {
-        'classifier__gamma': [0,0.1,0.2,0.4,0.8,1.6,3.2,6.4],
-        'classifier__learning_rate': [n for n in np.arange(0, 0.7, 0.1)],
-        'classifier__max_depth': [n for n in range(4, 10, 1)],
-        'classifier__n_estimators': [n for n in range(50, 350, 50)],
-        'classifier__reg_alpha': [0,0.1,0.2,0.4,0.8,1.6,3.2,6.4,12.8,25.6,51.2,102.4,200],
-        'classifier__reg_lambda': [0.6, 1.0, 1.6,3.2,6.4,12.8,25.6,51.2,102.4,200]
-    }
-
+    log_function(test_model, model, X_test, y_test)
     model = Pipeline([
-        ('classifier', XGBClassifier(random_state=42))
+        ('classifier', model_name(random_state=42))
     ])
 
-    model = log_function(bayesian_search, model, X_train_selected, y_train, X_test_selected, y_test, params, cv=5, n_iter=100)
+    model = log_function(bayesian_search, model, X_train, y_train, X_test, y_test, params, cv=5, n_iter=100)
 
-    log_function(test_model, model, X_test_selected, y_test)
+    log_function(test_model, model, X_test, y_test)
+
+    return model
+
+if __name__ == '__main__':
+    model = make_model(XGBClassifier,
+               {
+                    'classifier__gamma': [0,0.1,0.2,0.4,0.8,1.6,3.2,6.4],
+                    'classifier__learning_rate': [n for n in np.arange(0, 0.7, 0.1)],
+                    'classifier__max_depth': [n for n in range(4, 10, 1)],
+                    'classifier__n_estimators': [n for n in range(50, 350, 50)],
+                    'classifier__reg_alpha': [0,0.1,0.2,0.4,0.8,1.6,3.2,6.4,12.8,25.6,51.2,102.4,200],
+                    'classifier__reg_lambda': [0.6, 1.0, 1.6,3.2,6.4,12.8,25.6,51.2,102.4,200]
+                }
+    )
+
+    model.save_model('xgb_model.json')
+
+# if __name__ == '__main__':
+#     make_model(LGBMClassifier,
+#                {
+#             'classifier__num_leaves': [n for n in np.arange(2, 10, 1)],
+#             'classifier__max_depth': [n for n in np.arange(1, 6, 1)],
+#             'classifier__n_estimators': [n for n in np.arange(50, 151, 25)]
+#         })
+
+# if __name__ == '__main__':
+#     make_model(HistGradientBoostingClassifier,
+#                {
+#             'classifier__max_depth': [n for n in np.arange(1, 6, 1)],
+#             'classifier__max_iter': [n for n in np.arange(50, 151, 25)]
+#         }
+#     )
