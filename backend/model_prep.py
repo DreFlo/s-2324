@@ -26,6 +26,8 @@ from skopt import BayesSearchCV
 
 from imblearn.over_sampling import SMOTE
 
+import joblib
+
 
 def load_to_dataframe(data_file_path : str, sample_size : int | None = None):
     data = json.load(open(data_file_path, 'r'))
@@ -216,8 +218,8 @@ def make_model(model_name, params) -> XGBClassifier:
     
     X_train, X_test = log_function(scale_data, X_train, X_test)
 
-    oversample = SMOTE(random_state=1234)
-    X_train, y_train = oversample.fit_resample(X_train, y_train)
+    # oversample = SMOTE(random_state=1234)
+    # X_train, y_train = oversample.fit_resample(X_train, y_train)
     
     model = model_name(random_state=42)
     model.fit(X_train, y_train)
@@ -254,7 +256,7 @@ if __name__ == '__main__':
                 }
     )
 
-    model.save_model('xgb_model.json')
+    joblib.dump(model, 'model.pkl', compress=1)
 
 # if __name__ == '__main__':
 #     make_model(LGBMClassifier,
