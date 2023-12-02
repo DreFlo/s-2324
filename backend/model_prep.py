@@ -156,7 +156,7 @@ def select_features(model, X_train, y_train, X_test, _y_test, threshold='median'
     # array with columns that were selected
     selected_features = select.get_support()
 
-    return X_train[:, selected_features], X_test[:, selected_features]
+    return X_train[:, selected_features], X_test[:, selected_features], selected_features
 
 def get_best_feature_importance_threshold(model, X_train, y_train, X_test, y_test):
     thresholds = np.sort(model.feature_importances_)
@@ -166,7 +166,7 @@ def get_best_feature_importance_threshold(model, X_train, y_train, X_test, y_tes
     best_score = 0
     
     for threshold in thresholds:
-        X_train_selected, X_test_selected = select_features(model, X_train, y_train, X_test, y_test, threshold=threshold)
+        X_train_selected, X_test_selected, _ = select_features(model, X_train, y_train, X_test, y_test, threshold=threshold)
         model.fit(X_train_selected, y_train)
         
         y_pred_proba = model.predict_proba(X_test_selected)[:, 1]
@@ -228,7 +228,7 @@ def make_model(model_name, params) -> XGBClassifier:
 
     best_threshold = log_function(get_best_feature_importance_threshold, model, X_train, y_train, X_test, y_test)
 
-    X_train, X_test = log_function(select_features, model, X_train, y_train, X_test, y_test, threshold=best_threshold)
+    X_train, X_test, selected_features = log_function(select_features, model, X_train, y_train, X_test, y_test, threshold=best_threshold)
 
     model = model_name(random_state=42)
     model.fit(X_train, y_train)
@@ -239,6 +239,8 @@ def make_model(model_name, params) -> XGBClassifier:
     ])
 
     model = log_function(bayesian_search, model, X_train, y_train, X_test, y_test, params, cv=5, n_iter=100)
+
+    model.selected_features = selected_features
 
     log_function(test_model, model, X_test, y_test)
 
