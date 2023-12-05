@@ -7,6 +7,8 @@ from datetime import datetime
 import statistics
 import numpy as np
 import joblib
+import shap
+import matplotlib.pyplot as plt
 
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
@@ -83,26 +85,45 @@ def get_company_pred(company_name):
     
     print(company_info) """
     
-    #Create dataframe from info
+    # Temporary
     df = create_df_row()
     
-    #Load model and select features
     model = joblib.load('model.pkl') 
     
-    # selected_features = model.selected_features
-    selected_features = ['stock_change_before', 'total_revenue_last']
+    model_selected_features = model.selected_features
+    selected_features = []
     
-    #Select features from dataframe
+    for i, bool in enumerate(model_selected_features):
+        if bool:
+            selected_features.append(df.columns[i])
+            
     df = df[selected_features]
     
-    #Get prediction probability [[0.1, 0.9]]
     pred_proba = model.predict_proba(df)
+    
+    classifier = model['classifier']
+    
+    #print(df.head())
+    #df.dropna(inplace=True, axis=1)
+    #print(df.head())
+    
+    for col in df.columns:
+        if df[col].isnull().sum() > 0:
+            df[col].fillna(1, inplace=True)
+    
+    explainer = shap.TreeExplainer(classifier)
+    explanation = explainer(df)
+    
+    shap_values = explanation.values
+    shap.plots.beeswarm(explanation)
+    #shap.summary_plot(explanation, df)
+    plt.show()
     
     recommendation = pred_proba[0][1] > 0.5
     probability = pred_proba[0][1]
     
     return {'recommendation': recommendation, 'probability': probability}
 
-
 if __name__ == '__main__':
-    get_company_pred('AAPL')
+    pred = get_company_pred('AAPL')
+    print(pred)
