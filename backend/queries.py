@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
+from utils.model_utils import handle_nulls
 
 def create_df_row():
     data = json.load(open("resources/test_data_subset_1.json", 'r'))
@@ -107,16 +108,15 @@ def get_company_pred(company_name):
     #df.dropna(inplace=True, axis=1)
     #print(df.head())
     
-    for col in df.columns:
-        if df[col].isnull().sum() > 0:
-            df[col].fillna(1, inplace=True)
+    df = handle_nulls(df)
     
     explainer = shap.TreeExplainer(classifier)
     explanation = explainer(df)
     
     shap_values = explanation.values
-    shap.plots.beeswarm(explanation)
-    #shap.summary_plot(explanation, df)
+    #shap.plots.beeswarm(explanation)
+    shap.summary_plot(explanation, df)
+    #shap.decision_plot(explainer.expected_value, shap_values, df)
     plt.show()
     
     recommendation = pred_proba[0][1] > 0.5

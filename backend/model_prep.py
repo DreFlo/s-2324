@@ -26,6 +26,8 @@ from skopt import BayesSearchCV
 
 from imblearn.over_sampling import SMOTE
 
+from utils.model_utils import handle_nulls
+
 import joblib
 
 
@@ -258,7 +260,7 @@ if __name__ == '__main__':
                 }
     )
 
-    joblib.dump(model, 'model.pkl', compress=1)
+    joblib.dump(model, 'model_test.pkl', compress=1)
 
 # if __name__ == '__main__':
 #     make_model(LGBMClassifier,
