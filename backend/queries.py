@@ -81,10 +81,12 @@ def create_df_row():
 def get_company_pred(company_name):
     
     #Get company info
-    """ symbol = company_name
+    """ 
+    symbol = company_name
     company_info = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper).to_dict()
     
-    print(company_info) """
+    print(company_info) 
+    """
     
     # Temporary
     df = create_df_row()
@@ -100,6 +102,8 @@ def get_company_pred(company_name):
             
     df = df[selected_features]
     
+    print(df)
+
     pred_proba = model.predict_proba(df)
     
     classifier = model['classifier']
@@ -110,19 +114,37 @@ def get_company_pred(company_name):
     
     df = handle_nulls(df)
     
-    explainer = shap.TreeExplainer(classifier)
+    explainer = shap.TreeExplainer(classifier).data_missing(shap.maskers.Missing(data=df))
     explanation = explainer(df)
     
     shap_values = explanation.values
     #shap.plots.beeswarm(explanation)
-    shap.summary_plot(explanation, df)
+    #shap.summary_plot(explanation, df)
     #shap.decision_plot(explainer.expected_value, shap_values, df)
-    plt.show()
+    #plt.show()
     
     recommendation = pred_proba[0][1] > 0.5
     probability = pred_proba[0][1]
+
+    shap_values = {df.columns[i]: {'shap' : shap_values[0][i], 'value' : df[df.columns[i]].iloc[0]} for i in range(len(df.columns))}
+    shap_values = dict(sorted(shap_values.items(), key=lambda item: abs(item[1]['shap']), reverse=True))
+
+    supporting_features, detracting_features = {}, {}
+
+    for key, value in shap_values.items():
+        if value['shap'] > 0 and len(supporting_features) < 5:
+            supporting_features[key] = value['value']
+        elif value['shap'] < 0 and len(detracting_features) < 5:
+            detracting_features[key] = value['value']
     
-    return {'recommendation': recommendation, 'probability': probability}
+    return {
+        'symbol' : 'AAPL', 
+        'name' : "Apple", 
+        'recommendation': recommendation, 
+        'probability': probability, 
+        'supporting_features' : supporting_features, 
+        'detracting_features' : detracting_features
+        }
 
 if __name__ == '__main__':
     pred = get_company_pred('AAPL')

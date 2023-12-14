@@ -42,6 +42,6 @@ def handle_nulls(df):
                     for _col in cols:
                         if _col not in df.columns:
                             continue
-                        df[_col][i] = 1
+                        df[_col][i] = -1
 
     return df
