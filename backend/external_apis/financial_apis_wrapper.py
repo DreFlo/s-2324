@@ -34,7 +34,6 @@ class FinancialAPIsWrapper:
         global ticker_to_cik
         if not ticker_to_cik:
             response = requests.get("https://www.sec.gov/files/company_tickers.json", headers=CaseInsensitiveDict({'user-agent' : 'Name (email)'}))
-            print(response)
             json_response = response.json()
             ticker_to_cik = {v['ticker'].upper(): v["cik_str"] for v in json_response.values() if v['ticker'] is not None}
 
