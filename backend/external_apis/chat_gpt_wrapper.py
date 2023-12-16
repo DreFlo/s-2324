@@ -1,26 +1,28 @@
-query_template = """
-Generate text based on the data below. It has to follow the template roughly. Be creative in relation to the phrasing. The values in the data have to be there exactly.
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
 
-data: %s
+from utils.chat_gpt_query_templates import get_explain_company_prediction_query
 
-text base: %s
-"""
+load_dotenv()
 
-data = {
-    'recommendation': True, 
-    'probability': 0.52070606, 
-    'shap': {
-        'NetDebtToEBITDA_sec_last': 0.09124822, 
-        'FixedAssetTurnover_sec_last': -0.086266354, 
-        'CapitalExpenditureCoverageRatio_last': -0.070350364, 
-        'FreeCashFlow_sec_last': 0.070063144, 
-        'CurrentRatio_third_last': 0.063605174
-    }
-}
+CHAT_GPT_API_KEY = os.getenv('CHAT_GPT_API_KEY')
 
+class ChatGPTWrapper:
+    __client = OpenAI(api_key=CHAT_GPT_API_KEY)
 
-text_base = """
-We think <name> (<symbol>) is a <good if recomendation == True :  : bad> investment. We are exactly <probability> sure about this.
+    def __init__(self) -> None:
+        pass
 
-This recomendation is primarily based on the following metrics: <shap.keys.join(', ')>.
-"""
+    def explain_prediction(prediction : dict, text_style : str = 'casually, as if between friends, but don\'t be long-winded') -> str:
+        query = get_explain_company_prediction_query(prediction=prediction, style=text_style)
+
+        response = ChatGPTWrapper.__client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You generate output based on the instructions given to you"},
+                {"role": "user", "content": query}
+            ]
+        )
+
+        return response.choices[0].message.content

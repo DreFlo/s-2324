@@ -1,3 +1,4 @@
+from external_apis.chat_gpt_wrapper import ChatGPTWrapper
 from utils.cache_utils import cache_prediction
 from model.company_facts import CompanyFacts
 from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
@@ -141,6 +142,6 @@ if __name__ == '__main__':
 
     prediction = get_company_pred(symbol=company_facts.symbol)
 
-    prediction_explanation = get_explain_company_prediction_query(prediction=prediction, style='luis from ant man')
+    prediction_explanation = ChatGPTWrapper.explain_prediction(prediction=prediction)
 
     print(prediction_explanation)
