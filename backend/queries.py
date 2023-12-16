@@ -33,20 +33,20 @@ def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.
     date_dt = datetime.now()
     row_values = [encoded_symbol]
     
-    stock_dates = list(data[symbol]['stock_price_history'].keys())
+    stock_dates = list(data['stock_price_history'].keys())
     stock_change_before = []
     for i, stock_date in enumerate(stock_dates):
         stock_date_dt = datetime.strptime(stock_date, '%Y-%m-%d')
 
         if (stock_date_dt - date_dt).days > -30 and (stock_date_dt - date_dt).days < 0:
-            stock_change_before.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['close'])
+            stock_change_before.append(data['stock_price_history'][stock_date]['close'] - data['stock_price_history'][stock_dates[i-1]]['close'])
     
     if len(stock_change_before) == 0:
         row_values.append(np.nan)
     else:
         row_values.append(statistics.median(stock_change_before))
     
-    dates_before = list(data[symbol]['facts_by_form']['10-Q']['fileds']) + list(data[symbol]['facts_by_form']['10-K']['fileds'])
+    dates_before = list(data['facts_by_form']['10-Q']['fileds']) + list(data['facts_by_form']['10-K']['fileds'])
     
     for metric in metrics: 
         found_no = 0
@@ -55,15 +55,15 @@ def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.
             if found_no == 3:
                 break
             
-            if _date in data[symbol]['key_metrics_by_form']['10-Q'][metric]:
-                if type(data[symbol]['key_metrics_by_form']['10-Q'][metric][_date]) == dict:
-                    row_values.append(data[symbol]['key_metrics_by_form']['10-Q'][metric][_date]['val'])
+            if _date in data['key_metrics_by_form']['10-Q'][metric]:
+                if type(data['key_metrics_by_form']['10-Q'][metric][_date]) == dict:
+                    row_values.append(data['key_metrics_by_form']['10-Q'][metric][_date]['val'])
                     found_no += 1
                     continue
             
-            if _date in data[symbol]['key_metrics_by_form']['10-K'][metric]:
-                if type(data[symbol]['key_metrics_by_form']['10-K'][metric][_date]) == dict:
-                    row_values.append(data[symbol]['key_metrics_by_form']['10-K'][metric][_date]['val'])
+            if _date in data['key_metrics_by_form']['10-K'][metric]:
+                if type(data['key_metrics_by_form']['10-K'][metric][_date]) == dict:
+                    row_values.append(data['key_metrics_by_form']['10-K'][metric][_date]['val'])
                     found_no += 1
                     continue
         
@@ -77,7 +77,7 @@ def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.
 
 def get_company_pred(symbol):
     #Get company info
-    company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper).to_dict()
+    company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
 
     df = create_df_row_from_company_facts(company_facts=company_facts)
     
@@ -98,7 +98,7 @@ def get_company_pred(symbol):
     
     df = handle_nulls(df)
     
-    explainer = shap.TreeExplainer(classifier).data_missing(shap.maskers.Missing(data=df))
+    explainer = shap.TreeExplainer(classifier)
     explanation = explainer(df)
     
     shap_values = explanation.values
