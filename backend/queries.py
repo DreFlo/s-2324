@@ -15,6 +15,9 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 from utils.model_utils import handle_nulls
 
+
+from utils.chat_gpt_query_templates import get_explain_company_prediction_query
+
 def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.DataFrame:
     data = company_facts.to_dict()
         
@@ -134,5 +137,10 @@ def get_company_pred(symbol):
     return prediction
 
 if __name__ == '__main__':
-    pred = get_company_pred('T')
-    print(pred)
+    company_facts = CompanyFacts.from_symbol(symbol='AAPL', financial_api_wrapper=FinancialAPIsWrapper)
+
+    prediction = get_company_pred(symbol=company_facts.symbol)
+
+    prediction_explanation = get_explain_company_prediction_query(prediction=prediction, style='luis from ant man')
+
+    print(prediction_explanation)
