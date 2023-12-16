@@ -1,3 +1,4 @@
+from utils.cache_utils import cache_prediction
 from model.company_facts import CompanyFacts
 from external_apis.financial_apis_wrapper import FinancialAPIsWrapper
 import json
@@ -115,19 +116,23 @@ def get_company_pred(symbol):
 
     for key, value in shap_values.items():
         if value['shap'] > 0 and len(supporting_features) < 5:
-            supporting_features[key] = value['value']
+            supporting_features[key] = str(value['value'])
         elif value['shap'] < 0 and len(detracting_features) < 5:
-            detracting_features[key] = value['value']
+            detracting_features[key] = str(value['value'])
     
-    return {
+    prediction = {
         'symbol' : company_facts.symbol, 
         'name' : company_facts.name, 
-        'recommendation': recommendation, 
-        'probability': probability, 
+        'recommendation': 'buy' if recommendation else 'sell', 
+        'probability': str(probability), 
         'supporting_features' : supporting_features, 
         'detracting_features' : detracting_features
         }
+    
+    cache_prediction(prediction)
+    
+    return prediction
 
 if __name__ == '__main__':
-    pred = get_company_pred('AAPL')
+    pred = get_company_pred('T')
     print(pred)

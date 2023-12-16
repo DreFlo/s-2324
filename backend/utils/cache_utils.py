@@ -16,7 +16,7 @@ def cache_prediction(prediction : dict) -> None:
 
     # Write cache to file
     with open('prediction_cache.json', 'w') as cache_file:
-        json.dump(prediction_cache, cache_file)
+        json.dump(prediction_cache, cache_file, indent=4)
 
 def get_cached_prediction(symbol : str) -> dict | None:
     prediction_cache = None
