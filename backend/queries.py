@@ -91,12 +91,10 @@ def get_company_pred(symbol):
             selected_features.append(df.columns[i])
             
     df = df[selected_features]
-
+    
     pred_proba = model.predict_proba(df)
     
     classifier = model['classifier']
-    
-    df = handle_nulls(df)
     
     explainer = shap.TreeExplainer(classifier)
     explanation = explainer(df)
