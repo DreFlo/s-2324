@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 
 def cache_prediction(prediction : dict) -> None:
     prediction_cache = None
@@ -34,7 +35,7 @@ def get_cached_prediction(symbol : str) -> dict | None:
     else:
         return None
     
-def get_cached_predictions() -> dict | None:
+def get_cached_predictions(num: int = -1) -> dict | None:
     prediction_cache = None
 
     # Load cache if exists else return None
@@ -45,4 +46,7 @@ def get_cached_predictions() -> dict | None:
         return None
 
     # Return cached prediction if exists else return None
-    return prediction_cache
+    if num == -1:
+        return dict(sorted(prediction_cache.items(), key=lambda item: item[1]['probability'], reverse=True))
+    else:
+        return dict(sorted(prediction_cache.items(), key=lambda item: item[1]['probability'], reverse=True)[:num])

@@ -80,8 +80,14 @@ def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.
         
     return df
 
-def get_company_pred(symbol):
-    #Get company info
+def get_company_pred(name):
+    
+    results = FinancialAPIsWrapper.search_company(search_str=name, limit=1)
+    if len(results) == 0:
+        return None
+    else:
+        symbol = results[0]['symbol']
+    
     company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
 
     df = create_df_row_from_company_facts(company_facts=company_facts)
@@ -105,10 +111,6 @@ def get_company_pred(symbol):
     explanation = explainer(df)
     
     shap_values = explanation.values
-    #shap.plots.beeswarm(explanation)
-    #shap.summary_plot(explanation, df)
-    #shap.decision_plot(explainer.expected_value, shap_values, df)
-    #plt.show()
     
     recommendation = pred_proba[0][1] > 0.5
     probability = pred_proba[0][1]
@@ -123,25 +125,31 @@ def get_company_pred(symbol):
             supporting_features[key] = str(value['value'])
         elif value['shap'] < 0 and len(detracting_features) < 5:
             detracting_features[key] = str(value['value'])
-    
+            
     prediction = {
         'symbol' : company_facts.symbol, 
         'name' : company_facts.name, 
         'recommendation': 'buy' if recommendation else 'sell', 
         'probability': str(probability), 
         'supporting_features' : supporting_features, 
-        'detracting_features' : detracting_features
+        'detracting_features' : detracting_features,
+        'date' : datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
+     
+    # Commented so that I won't accidentally spend money on chatGPT
+    # prediction['explanation'] = ChatGPTWrapper.explain_prediction(prediction=prediction)
     
     cache_prediction(prediction)
     
     return prediction
 
 if __name__ == '__main__':
-    company_facts = CompanyFacts.from_symbol(symbol='AAPL', financial_api_wrapper=FinancialAPIsWrapper)
+    #company_facts = CompanyFacts.from_symbol(symbol='AAPL', financial_api_wrapper=FinancialAPIsWrapper)
 
-    prediction = get_company_pred(symbol=company_facts.symbol)
+    prediction = get_company_pred(name='apple')
+    print(prediction)
 
-    prediction_explanation = ChatGPTWrapper.explain_prediction(prediction=prediction)
+    # Commented so that I won't accidentally spend money on chatGPT
+    # prediction_explanation = ChatGPTWrapper.explain_prediction(prediction=prediction)
 
-    print(prediction_explanation)
+    # print(prediction_explanation)

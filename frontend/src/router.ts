@@ -10,6 +10,11 @@ const routes = [
     path: '/rankings/:numRankings?',
     name: 'rankings',
     component: () => import('./components/RankingTable.vue')
+  },
+  {
+    path: '/prediction/:prediction',
+    name: 'prediction',
+    component: () => import('./pages/PredictionPage.vue')
   }
 ]
 

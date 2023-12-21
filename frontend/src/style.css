@@ -78,3 +78,11 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.accordion-button {
+  background-color: transparent !important;
+}
+
+button.accordion-button:focus{
+  box-shadow: inherit;
+}
