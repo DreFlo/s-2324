@@ -78,9 +78,9 @@ def load_to_dataframe(data_file_path : str, sample_size : int | None = None):
             for i, stock_date in enumerate(stock_dates):
                 stock_date_dt = datetime.strptime(stock_date, '%Y-%m-%d')
                 
-                if (stock_date_dt - date_dt).days < 30 and (stock_date_dt - date_dt).days > 0:
+                if (stock_date_dt - date_dt).days < 90 and (stock_date_dt - date_dt).days > 0:
                     stock_change_over.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['close'])
-                elif (stock_date_dt - date_dt).days > -30 and (stock_date_dt - date_dt).days < 0:
+                elif (stock_date_dt - date_dt).days > -90 and (stock_date_dt - date_dt).days < 0:
                     stock_change_before.append(data[symbol]['stock_price_history'][stock_date]['close'] - data[symbol]['stock_price_history'][stock_dates[i-1]]['close'])
             
             if len(stock_change_over) == 0 or len(stock_change_before) == 0:
@@ -123,6 +123,8 @@ def load_to_dataframe(data_file_path : str, sample_size : int | None = None):
                 
     df.dropna(how='all', inplace=True)
     
+    print(df['buy'].value_counts())
+
     return df
 
 def test_model(model, X_test, y_test):
@@ -215,6 +217,48 @@ def make_model(model_name, params) -> XGBClassifier:
     
     X = df.drop(['symbol', 'buy'], axis=1)
     y = df['buy']
+
+    X = drop_features(X, [
+        'NetCurrentAssetValue',
+        'WorkingCapital', 
+        'NIPerEBT', 
+        'DebtEquityRatio', 
+        'DebtToEquity', 
+        'ReturnOnInvestedCapital', 
+        'ReturnOnCapitalEmployed',
+        'CapexPerShare',
+        'ReturnOnAssets',
+        'ReturnOnEquity',
+        'TangibleAssetValue',
+        'OperatingProfitMargin',
+        'OperatingCashFlowSalesRatio',
+        'DebtToAssets',
+        'GrossProfitMargin',
+        'PretaxProfitMargin',
+        'InterestDebtPerShare',
+        'AssetTurnover_sec_last',
+        'AssetTurnover_third_last',
+        'LongTermDebtToCapitalization_sec_last',
+        'LongTermDebtToCapitalization_third_last',
+        'ShortTermCoverageRatio_sec_last',
+        'ShortTermCoverageRatio_third_last',
+        'CashFlowCoverageRatio_sec_last',
+        'EBITDA_sec_last',
+        'EBITDA_last',
+        'Expenses_sec_last',
+        'Expenses_third_last',
+        'DebtRatio_sec_last',
+        'DebtRatio_third_last',
+        'QuickRatio_sec_last',
+        'QuickRatio_third_last',
+        'DividendPaidAndCapexCoverageRatio_sec_last',
+        'DividendPaidAndCapexCoverageRatio_third_last',
+        'CashRatio_sec_last',
+        'CashRatio_third_last',
+        'NetProfitMargin_third_last',
+        'CurrentRatio_sec_last',
+        ])
+
     
     X_train, X_test, y_train, y_test = log_function(train_test_split, X, y, random_state=42)
     
@@ -223,7 +267,7 @@ def make_model(model_name, params) -> XGBClassifier:
     # oversample = SMOTE(random_state=1234)
     # X_train, y_train = oversample.fit_resample(X_train, y_train)
     
-    model = model_name(random_state=42)
+    model = model_name(random_state=42, objective='binary:logistic', eval_metric='auc')
     model.fit(X_train, y_train)
 
     log_function(test_model, model, X_test, y_test)
@@ -232,21 +276,39 @@ def make_model(model_name, params) -> XGBClassifier:
 
     X_train, X_test, selected_features = log_function(select_features, model, X_train, y_train, X_test, y_test, threshold=best_threshold)
 
-    model = model_name(random_state=42)
+    model = model_name(random_state=42, objective='binary:logistic', eval_metric='auc')
     model.fit(X_train, y_train)
 
     log_function(test_model, model, X_test, y_test)
     model = Pipeline([
-        ('classifier', model_name(random_state=42))
+        ('classifier', model_name(random_state=42, objective='binary:logistic', eval_metric='auc'))
     ])
 
-    model = log_function(bayesian_search, model, X_train, y_train, X_test, y_test, params, cv=5, n_iter=100)
+    model = log_function(bayesian_search, model, X_train, y_train, X_test, y_test, params, cv=5, n_iter=50)
 
     model.selected_features = selected_features
 
     log_function(test_model, model, X_test, y_test)
 
     return model
+
+def vif(df : pd.DataFrame) -> pd.DataFrame:
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+    copy = df.copy()
+    copy['intercept'] = 1
+
+    vif = pd.DataFrame()
+    vif['features'] = df.columns
+    vif['VIF'] = [variance_inflation_factor(df.values, i) for i in range(len(df.columns))]
+    vif = vif[vif['features'] != 'intercept']
+    vif = vif.sort_values(by='VIF', ascending=False)
+
+    return vif
+
+def drop_features(df : pd.DataFrame, features : list) -> pd.DataFrame:
+    features = [[f'{feature}_last', f'{feature}_sec_last', f'{feature}_third_last'] if "_" not in feature else [feature] for feature in features]
+    return df.drop([feature for features_grouped in features for feature in features_grouped], axis=1)
 
 if __name__ == '__main__':
     model = make_model(XGBClassifier,
@@ -259,21 +321,56 @@ if __name__ == '__main__':
                     'classifier__reg_lambda': [0.6, 1.0, 1.6,3.2,6.4,12.8,25.6,51.2,102.4,200]
                 }
     )
+    
+    joblib.dump(model, 'model.pkl', compress=1)
 
-    joblib.dump(model, 'model_test.pkl', compress=1)
+    # df = log_function(load_to_dataframe, 'resources/test_data.json', sample_size=600)
 
-# if __name__ == '__main__':
-#     make_model(LGBMClassifier,
-#                {
-#             'classifier__num_leaves': [n for n in np.arange(2, 10, 1)],
-#             'classifier__max_depth': [n for n in np.arange(1, 6, 1)],
-#             'classifier__n_estimators': [n for n in np.arange(50, 151, 25)]
-#         })
+    # df = log_function(handle_nulls, df)
 
-# if __name__ == '__main__':
-#     make_model(HistGradientBoostingClassifier,
-#                {
-#             'classifier__max_depth': [n for n in np.arange(1, 6, 1)],
-#             'classifier__max_iter': [n for n in np.arange(50, 151, 25)]
-#         }
-#     )
+    # X = df.drop(['symbol', 'buy'], axis=1)
+
+    # X = drop_features(X, [
+    #     'NetCurrentAssetValue',
+    #     'WorkingCapital', 
+    #     'NIPerEBT', 
+    #     'DebtEquityRatio', 
+    #     'DebtToEquity', 
+    #     'ReturnOnInvestedCapital', 
+    #     'ReturnOnCapitalEmployed',
+    #     'CapexPerShare',
+    #     'ReturnOnAssets',
+    #     'ReturnOnEquity',
+    #     'TangibleAssetValue',
+    #     'OperatingProfitMargin',
+    #     'OperatingCashFlowSalesRatio',
+    #     'DebtToAssets',
+    #     'GrossProfitMargin',
+    #     'PretaxProfitMargin',
+    #     'InterestDebtPerShare',
+    #     'AssetTurnover_sec_last',
+    #     'AssetTurnover_third_last',
+    #     'LongTermDebtToCapitalization_sec_last',
+    #     'LongTermDebtToCapitalization_third_last',
+    #     'ShortTermCoverageRatio_sec_last',
+    #     'ShortTermCoverageRatio_third_last',
+    #     'CashFlowCoverageRatio_sec_last',
+    #     'EBITDA_sec_last',
+    #     'EBITDA_last',
+    #     'Expenses_sec_last',
+    #     'Expenses_third_last',
+    #     'DebtRatio_sec_last',
+    #     'DebtRatio_third_last',
+    #     'QuickRatio_sec_last',
+    #     'QuickRatio_third_last',
+    #     'DividendPaidAndCapexCoverageRatio_sec_last',
+    #     'DividendPaidAndCapexCoverageRatio_third_last',
+    #     'CashRatio_sec_last',
+    #     'CashRatio_third_last',
+    #     'NetProfitMargin_third_last',
+    #     'CurrentRatio_sec_last',
+    #     ])
+
+    # _vif = log_function(vif, X)
+
+    # _vif.to_csv('vif.csv', index=False)
