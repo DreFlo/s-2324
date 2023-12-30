@@ -23,7 +23,12 @@ def create_df_row_from_company_facts(company_facts : CompanyFacts = None) -> pd.
     data = company_facts.to_dict()
         
     symbol = data['symbol']
-    metrics = list(data['key_metrics_by_form']['10-Q'].keys())
+    if data['key_metrics_by_form']['10-Q'] is None and data['key_metrics_by_form']['10-K'] is None:
+        return None
+    elif data['key_metrics_by_form']['10-Q'] is None:
+        metrics = list(data['key_metrics_by_form']['10-K'].keys())
+    else:
+        metrics = list(data['key_metrics_by_form']['10-Q'].keys())
     
     df = pd.DataFrame(columns=['symbol'])
     
@@ -84,13 +89,18 @@ def get_company_pred(name):
     
     results = FinancialAPIsWrapper.search_company(search_str=name, limit=1)
     if len(results) == 0:
-        return None
+        return -1
     else:
         symbol = results[0]['symbol']
     
-    company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
+    try:
+        company_facts = CompanyFacts.from_symbol(symbol=symbol, financial_api_wrapper=FinancialAPIsWrapper)
+    except:
+        return -1
 
     df = create_df_row_from_company_facts(company_facts=company_facts)
+    if df is None:
+        return -2
     
     model = joblib.load('model.pkl') 
     
@@ -137,7 +147,7 @@ def get_company_pred(name):
         }
      
     # Commented so that I won't accidentally spend money on chatGPT
-    # prediction['explanation'] = ChatGPTWrapper.explain_prediction(prediction=prediction)
+    prediction['explanation'] = ChatGPTWrapper.explain_prediction(prediction=prediction)
     
     cache_prediction(prediction)
     
