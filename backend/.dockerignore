@@ -1,0 +1,6 @@
+**/__pycache__
+/resources
+model_prep.ipynb
+.env*
+.gitignore
+prediction_cache.json

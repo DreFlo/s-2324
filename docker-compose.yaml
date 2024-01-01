@@ -1,0 +1,22 @@
+version: '3.0'
+
+name: money-talks
+
+services:
+  backend:
+    image: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 8000:80
+    # Note for the Professor: we sent the .env file to you via email
+    env_file:
+      - .env
+  frontend:
+    image: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 5173:80
