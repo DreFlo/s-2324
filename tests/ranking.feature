@@ -5,7 +5,7 @@ Feature: Company ranking
     Scenario: See rankings table from home page
         Given I am on the home page
         Then I should see the "Top Recomendations" header
-        * I should see a table with the following columns:
+        And I should see a table with the following columns:
             | Company Name | Recomendation | Probability of price increase | Prediction Date |
         * I should see the five companies I have searched for that have the highest probability of stock price increase in the table
         * I should see the companies in order of probability of price increase (descending)
