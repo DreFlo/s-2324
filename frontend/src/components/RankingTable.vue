@@ -38,7 +38,7 @@
                         <div class="row p-2">
                             <div class="col-3 text-start ms-3">
                                 <span>
-                                    {{ ranking['name'] }}
+                                    {{ ranking['name'] }} ({{ ranking['symbol'] }})
                                 </span>
                             </div>
                             <div class="col-2 text-start">
