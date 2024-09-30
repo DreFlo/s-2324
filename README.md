@@ -1,4 +1,6 @@
-# s-2324
+# MoneyTalks
+
+AI investment advice. Read [report](report.pdf) for more info!
 
 ## Running
 
